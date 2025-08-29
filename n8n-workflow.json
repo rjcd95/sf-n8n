@@ -1,0 +1,241 @@
+{
+    "name": "Slack + OpenAI + Salesforce Bot (Full Extended)",
+    "nodes": [
+      {
+        "parameters": {
+          "event": "message"
+        },
+        "name": "Slack Trigger",
+        "type": "n8n-nodes-base.slackTrigger",
+        "typeVersion": 1,
+        "position": [200, 300],
+        "credentials": {
+          "slackApi": "Slack Account"
+        }
+      },
+      {
+        "parameters": {
+          "chatPrompt": "Eres un analizador de intención para un bot de Slack conectado a Salesforce.\nClasifica la siguiente pregunta y devuélvela como JSON:\n{\n \"intencion\": \"saludo | cumpleaños_hoy | mensaje_cumple | recomendacion | consulta_campo | otro\",\n \"nombre\": \"<nombre_persona_si_existe>\",\n \"campos\": [\"lista de campos solicitados\"],\n \"rol\": \"<rol solicitado si aplica>\",\n \"top\": <número solicitado si aplica>,\n \"idioma\": \"es | en\"\n}\n\nPregunta: \"{{$json[\"text\"]}}\""
+        },
+        "name": "Intent Extractor",
+        "type": "n8n-nodes-base.openAi",
+        "typeVersion": 1,
+        "position": [500, 300],
+        "credentials": {
+          "openAiApi": "OpenAI Account"
+        }
+      },
+      {
+        "parameters": {
+          "propertyName": "intencion",
+          "rules": [
+            { "operation": "equal", "value": "saludo" },
+            { "operation": "equal", "value": "consulta_campo" },
+            { "operation": "equal", "value": "cumpleaños_hoy" },
+            { "operation": "equal", "value": "mensaje_cumple" },
+            { "operation": "equal", "value": "recomendacion" }
+          ]
+        },
+        "name": "Switch Intent",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 1,
+        "position": [800, 300]
+      },
+      {
+        "parameters": {
+          "chatPrompt": "Genera un saludo amigable al usuario en {{$json[\"idioma\"]}}. Ejemplo: Hola {{ $json[\"user\"] }}, ¿cómo puedo ayudarte hoy?"
+        },
+        "name": "Generate Greeting",
+        "type": "n8n-nodes-base.openAi",
+        "typeVersion": 1,
+        "position": [1050, 100],
+        "credentials": { "openAiApi": "OpenAI Account" }
+      },
+      {
+        "parameters": {
+          "channel": "={{$json[\"channel\"]}}",
+          "text": "={{$json[\"text\"]}}"
+        },
+        "name": "Send Slack Greeting",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 1,
+        "position": [1300, 100],
+        "credentials": { "slackApi": "Slack Account" }
+      },
+      {
+        "parameters": {
+          "operation": "getAll",
+          "sobject": "Contact",
+          "options": {
+            "conditions": "Name LIKE '%{{$json[\"nombre\"]}}%'"
+          }
+        },
+        "name": "Salesforce Get Contact",
+        "type": "n8n-nodes-base.salesforce",
+        "typeVersion": 1,
+        "position": [1050, 200],
+        "credentials": { "salesforceApi": "Salesforce Account" }
+      },
+      {
+        "parameters": {
+          "chatPrompt": "Pregunta: '{{$json[\"text\"]}}'\nCampos solicitados: {{$json[\"campos\"]}}\nDatos Salesforce: {{$json}}\nResponde de forma clara y natural en {{$json[\"idioma\"]}}."
+        },
+        "name": "Format Field Response",
+        "type": "n8n-nodes-base.openAi",
+        "typeVersion": 1,
+        "position": [1300, 200],
+        "credentials": { "openAiApi": "OpenAI Account" }
+      },
+      {
+        "parameters": {
+          "channel": "={{$json[\"channel\"]}}",
+          "text": "={{$json[\"text\"]}}"
+        },
+        "name": "Send Slack Field Response",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 1,
+        "position": [1550, 200],
+        "credentials": { "slackApi": "Slack Account" }
+      },
+      {
+        "parameters": {
+          "operation": "getAll",
+          "sobject": "Contact",
+          "options": {
+            "conditions": "DAY_ONLY(Birthdate) = DAY_ONLY(TODAY)"
+          }
+        },
+        "name": "Salesforce Birthdays Today",
+        "type": "n8n-nodes-base.salesforce",
+        "typeVersion": 1,
+        "position": [1050, 300],
+        "credentials": { "salesforceApi": "Salesforce Account" }
+      },
+      {
+        "parameters": {
+          "chatPrompt": "Hoy cumplen años estas personas: {{$json}}. Genera una respuesta amigable en {{$json[\"idioma\"]}}."
+        },
+        "name": "Format Birthday Response",
+        "type": "n8n-nodes-base.openAi",
+        "typeVersion": 1,
+        "position": [1300, 300],
+        "credentials": { "openAiApi": "OpenAI Account" }
+      },
+      {
+        "parameters": {
+          "channel": "={{$json[\"channel\"]}}",
+          "text": "={{$json[\"text\"]}}"
+        },
+        "name": "Send Slack Birthday",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 1,
+        "position": [1550, 300],
+        "credentials": { "slackApi": "Slack Account" }
+      },
+      {
+        "parameters": {
+          "operation": "getAll",
+          "sobject": "Contact",
+          "options": {
+            "conditions": "={{$json[\"nombre\"] ? \"Name LIKE '%\" + $json[\"nombre\"] + \"%'\" : \"DAY_ONLY(Birthdate) = DAY_ONLY(TODAY)\"}}"
+          }
+        },
+        "name": "Salesforce Birthday Message",
+        "type": "n8n-nodes-base.salesforce",
+        "typeVersion": 1,
+        "position": [1050, 400],
+        "credentials": { "salesforceApi": "Salesforce Account" }
+      },
+      {
+        "parameters": {
+          "chatPrompt": "Genera mensajes de cumpleaños personalizados para estas personas: {{$json}}. Usa su info laboral/personal si está disponible. Responde en {{$json[\"idioma\"]}}."
+        },
+        "name": "Format Birthday Message",
+        "type": "n8n-nodes-base.openAi",
+        "typeVersion": 1,
+        "position": [1300, 400],
+        "credentials": { "openAiApi": "OpenAI Account" }
+      },
+      {
+        "parameters": {
+          "channel": "={{$json[\"channel\"]}}",
+          "text": "={{$json[\"text\"]}}"
+        },
+        "name": "Send Slack Birthday Message",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 1,
+        "position": [1550, 400],
+        "credentials": { "slackApi": "Slack Account" }
+      },
+      {
+        "parameters": {
+          "operation": "getAll",
+          "sobject": "Contact",
+          "options": {
+            "conditions": "Skills__c LIKE '%{{$json[\"rol\"]}}%'"
+          }
+        },
+        "name": "Salesforce Candidates",
+        "type": "n8n-nodes-base.salesforce",
+        "typeVersion": 1,
+        "position": [1050, 500],
+        "credentials": { "salesforceApi": "Salesforce Account" }
+      },
+      {
+        "parameters": {
+          "chatPrompt": "Se pide el top {{$json[\"top\"]}} para el rol {{$json[\"rol\"]}}. De esta lista de Salesforce {{$json}}, selecciona los mejores y respóndelo de forma natural en {{$json[\"idioma\"]}}."
+        },
+        "name": "Format Recommendation",
+        "type": "n8n-nodes-base.openAi",
+        "typeVersion": 1,
+        "position": [1300, 500],
+        "credentials": { "openAiApi": "OpenAI Account" }
+      },
+      {
+        "parameters": {
+          "channel": "={{$json[\"channel\"]}}",
+          "text": "={{$json[\"text\"]}}"
+        },
+        "name": "Send Slack Recommendation",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 1,
+        "position": [1550, 500],
+        "credentials": { "slackApi": "Slack Account" }
+      },
+      {
+        "parameters": {
+          "channel": "={{$json[\"channel\"]}}",
+          "text": "Lo siento, aún no sé responder eso. Puedo ayudarte con saludos, cumpleaños o datos de Salesforce."
+        },
+        "name": "Send Slack Other",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 1,
+        "position": [1050, 600],
+        "credentials": { "slackApi": "Slack Account" }
+      }
+    ],
+    "connections": {
+      "Slack Trigger": { "main": [[{ "node": "Intent Extractor", "type": "main", "index": 0 }]] },
+      "Intent Extractor": { "main": [[{ "node": "Switch Intent", "type": "main", "index": 0 }]] },
+      "Switch Intent": {
+        "main": [
+          [{ "node": "Generate Greeting", "type": "main", "index": 0 }],
+          [{ "node": "Salesforce Get Contact", "type": "main", "index": 0 }],
+          [{ "node": "Salesforce Birthdays Today", "type": "main", "index": 0 }],
+          [{ "node": "Salesforce Birthday Message", "type": "main", "index": 0 }],
+          [{ "node": "Salesforce Candidates", "type": "main", "index": 0 }],
+          [{ "node": "Send Slack Other", "type": "main", "index": 0 }]
+        ]
+      },
+      "Generate Greeting": { "main": [[{ "node": "Send Slack Greeting", "type": "main", "index": 0 }]] },
+      "Salesforce Get Contact": { "main": [[{ "node": "Format Field Response", "type": "main", "index": 0 }]] },
+      "Format Field Response": { "main": [[{ "node": "Send Slack Field Response", "type": "main", "index": 0 }]] },
+      "Salesforce Birthdays Today": { "main": [[{ "node": "Format Birthday Response", "type": "main", "index": 0 }]] },
+      "Format Birthday Response": { "main": [[{ "node": "Send Slack Birthday", "type": "main", "index": 0 }]] },
+      "Salesforce Birthday Message": { "main": [[{ "node": "Format Birthday Message", "type": "main", "index": 0 }]] },
+      "Format Birthday Message": { "main": [[{ "node": "Send Slack Birthday Message", "type": "main", "index": 0 }]] },
+      "Salesforce Candidates": { "main": [[{ "node": "Format Recommendation", "type": "main", "index": 0 }]] },
+      "Format Recommendation": { "main": [[{ "node": "Send Slack Recommendation", "type": "main", "index": 0 }]] }
+    }
+  }
+  
