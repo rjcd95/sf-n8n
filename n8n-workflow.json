@@ -1,241 +1,526 @@
 {
-    "name": "Slack + OpenAI + Salesforce Bot (Full Extended)",
+    "name": "My workflow 6",
     "nodes": [
       {
         "parameters": {
-          "event": "message"
+          "promptType": "define",
+          "text": "=You are Mila, a helpful personal information assistant. Your task is to:\n1. Detect the language of the user's message\n2. Classify the message type (greeting, personal_info_request, or other)\n3. Identify what specific personal information is being requested\n\nFor the message: \"{{ $json.text }}\"\n\nPlease respond in this exact JSON format:\n{\n  \"detected_language\": \"spanish\" or \"english\",\n  \"message_type\": \"greeting\" or \"personal_info_request\" or \"other\",\n  \"requires_salesforce\": true or false,\n  \"person_name\": \"extracted person name if any or 'ALL' for lists\",\n  \"info_type\": \"birthday|full_name|phone|email|title|department|contact_list|preferred_cake_flavor|preferred_pizza_flavor|favorite_color|favorite_food|allergies|sweet_or_salty|tshirt_size|jacket_size|polo_size|jogger_size|personality_type|hire_date|employment_status|area|unit|nationality|national_id|marital_status|gender|pronouns|country|city|home_address|alternative_address|zip|mobile|home_phone|personal_email|linkedin|facebook|twitter|other_personal\",\n  \"response\": \"your response here\"\n}\n\nRules:\n- If it's a greeting: Set message_type to \"greeting\", requires_salesforce to false, provide a friendly greeting response\n- If it's asking for PERSONAL information about staff/employees: Set message_type to \"personal_info_request\", requires_salesforce to true, extract person_name and info_type, and set response to \"Buscando información...\" (Spanish) or \"Searching for information...\" (English)\n- If asking for LISTS of people/contacts: Set person_name to \"ALL\", info_type to \"contact_list\", requires_salesforce to true\n- EXCLUDE: salaries, budgets, company financial information, clients, non-personal data\n- For anything else: Set message_type to \"other\", requires_salesforce to false, and politely decline\n- Always respond in the same language as detected\n- Make responses sound natural and human-like, not robotic\n- NEVER ask for confirmation when requires_salesforce is true - the search will happen automatically\n\nCONTACT KEYWORDS - These refer to Salesforce Contacts (employees/staff):\n- Spanish: personas, trabajadores, colaboradores, empleados, equipo, staff, gente, compañeros\n- English: people, workers, employees, staff, colleagues, coworkers, team members, persons\n\nExamples of VALID requests:\n- \"¿Cuándo es el cumpleaños de Juan?\" → person_name: \"Juan\", info_type: \"birthday\"\n- \"Dame el correo de María\" → person_name: \"María\", info_type: \"email\"\n- \"Lista de trabajadores\" → person_name: \"ALL\", info_type: \"contact_list\"\n- \"Dame todas las personas de la empresa\" → person_name: \"ALL\", info_type: \"contact_list\"\n- \"Show me all employees\" → person_name: \"ALL\", info_type: \"contact_list\"\n- \"List of staff members\" → person_name: \"ALL\", info_type: \"contact_list\"\n- \"¿Quiénes trabajan aquí?\" → person_name: \"ALL\", info_type: \"contact_list\"\n- \"What's Pedro's phone number?\" → person_name: \"Pedro\", info_type: \"phone\"\n- \"What is the Preferred Cake Flavor of Pepe?\" → person_name: \"Pepe\", info_type: \"preferred_cake_flavor\"\n- \"What is the T-Shirt Size of Juan?\" → person_name: \"Juan\", info_type: \"tshirt_size\"\n- \"What is the Favorite Food of Mario?\" → person_name: \"Mario\", info_type: \"favorite_food\"\n- \"¿Cuál es la comida favorita de Ana?\" → person_name: \"Ana\", info_type: \"favorite_food\"\n- \"¿Qué talla de camisa usa Pedro?\" → person_name: \"Pedro\", info_type: \"tshirt_size\"\n- \"What's Maria's favorite color?\" → person_name: \"Maria\", info_type: \"favorite_color\"\n- \"¿Cuándo fue contratado Luis?\" → person_name: \"Luis\", info_type: \"hire_date\"\n- \"What's John's LinkedIn profile?\" → person_name: \"John\", info_type: \"linkedin\"\n- \"¿Cuál es la nacionalidad de Carlos?\" → person_name: \"Carlos\", info_type: \"nationality\"\n\nExamples of INVALID requests (should be \"other\"):\n- \"¿Cuánto gana Juan?\" → salary (not personal)\n- \"¿Cuál es el presupuesto del proyecto?\" → budget (not personal)\n- \"¿Quiénes son nuestros clientes?\" → business info (not contacts/employees)",
+          "options": {}
         },
-        "name": "Slack Trigger",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 2.2,
+        "position": [
+          -784,
+          192
+        ],
+        "id": "4b130b58-3b9c-44f3-a325-402d2c3839e0",
+        "name": "Language & Message Classifier"
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "value": "gpt-5-mini",
+            "mode": "list",
+            "cachedResultName": "gpt-5-mini"
+          },
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.2,
+        "position": [
+          -784,
+          464
+        ],
+        "id": "f7114665-5e5c-466f-a9f4-180074adccae",
+        "name": "OpenAI Chat Model",
+        "credentials": {
+          "openAiApi": {
+            "id": "k5EcjwlAKjq4YYgj",
+            "name": "OpenAi account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "// Parse the AI response and extract JSON\nconst aiOutput = $input.first().json.output;\nlet parsedResponse;\n\ntry {\n  // Extract JSON from the AI response\n  const jsonMatch = aiOutput.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    parsedResponse = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('No JSON found in response');\n  }\n} catch (error) {\n  // Fallback if parsing fails\n  parsedResponse = {\n    detected_language: 'spanish',\n    message_type: 'other',\n    requires_salesforce: false,\n    response: 'Lo siento, hubo un error procesando tu mensaje.'\n  };\n}\n\n// Add original message data\nparsedResponse.original_message = $('Slack Trigger').first().json.text;\nparsedResponse.user_id = $('Slack Trigger').first().json.user;\n\nreturn parsedResponse;"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -464,
+          192
+        ],
+        "id": "401d46f1-272e-4b47-b946-9c0c9c7875da",
+        "name": "Parse AI Response"
+      },
+      {
+        "parameters": {
+          "select": "user",
+          "user": {
+            "__rl": true,
+            "value": "={{ $('Slack Trigger').item.json.user }}",
+            "mode": "id"
+          },
+          "text": "={{ $json.response }}",
+          "otherOptions": {}
+        },
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.3,
+        "position": [
+          0,
+          400
+        ],
+        "id": "bd1fc847-d5c6-4f80-ac39-f27be863deeb",
+        "name": "Send Direct Response",
+        "webhookId": "a26f3472-0274-467a-b663-36caa06184a3",
+        "credentials": {
+          "slackApi": {
+            "id": "N2eQbu66RCaj9hiz",
+            "name": "Slack Account - API"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=Based on the personal information request, generate a SOQL query to search Salesforce for employee/staff personal data on Salesforce Contacts.\n\nRequest details:\n- Person: \"{{ $('Parse AI Response').item.json.person_name }}\"\n- Info type: \"{{ $('Parse AI Response').item.json.info_type }}\"\n- Language: {{ $('Parse AI Response').item.json.detected_language }}\n- Original message: \"{{ $('Parse AI Response').item.json.original_message }}\"\n\nGenerate a SOQL query for the Contact object with personal fields. Map info_type to these EXACT field names:\n\nSTANDARD FIELDS:\n- birthday → Birthdate\n- full_name → Name\n- phone → Phone\n- email → Email\n- title → Title\n- department → Department\n- mobile → MobilePhone\n- home_phone → HomePhone\n- personal_email → npe01__AlternateEmail__c\n- hire_date → npe01__WorkPhone__c\n- employment_status → npe01__PreferredPhone__c\n\nCUSTOM FIELDS (use exact API names):\n- preferred_cake_flavor → Preferred_Cake_Flavor__c\n- preferred_pizza_flavor → Preferred_Pizza_Flavor__c\n- favorite_color → Favorite_color__c\n- favorite_food → Favorite_Food__c\n- allergies → Allergies_or_food_aversions__c\n- sweet_or_salty → Sweet_or_salty__c\n- tshirt_size → T_Shirt_Size__c\n- jacket_size → Jacket_Size__c\n- polo_size → Polo_Size__c\n- jogger_size → Jogger_Size__c\n- personality_type → Personality_Type__c\n- area → Area__c\n- unit → Unit__c\n- nationality → Nationality__c\n- national_id → National_ID__c\n- marital_status → Marital_Status__c\n- gender → Gender__c\n- pronouns → Pronouns__c\n- country → MailingCountry\n- city → MailingCity\n- home_address → MailingStreet\n- zip → MailingPostalCode\n- linkedin → LinkedIn__c\n- facebook → Facebook__c\n- twitter → Twitter__c\n- contact_list → Name, Email, Phone, Title, Department (for lists of all contacts)\n\nIMPORTANT: Use these EXACT field names as they appear in Salesforce.\n\nQuery Rules:\n- If person_name is \"ALL\" or info_type is \"contact_list\": Create a query to get all contacts with basic info\n- If person_name is a specific name: Use LIKE '%name%' in WHERE clause\n- For lists, limit to 50 records and order by Name\n\nExamples:\n- person_name: \"Juan Pérez\", info_type: \"birthday\" → SELECT Name, Birthdate FROM Contact WHERE Name LIKE '%Juan%' AND Name LIKE '%Pérez%'\n- person_name: \"Pedro\", info_type: \"email\" → SELECT Name, Email FROM Contact WHERE Name LIKE '%Pedro%'\n- person_name: \"ALL\", info_type: \"contact_list\" → SELECT Name, Email, Phone, Title, Department FROM Contact ORDER BY Name LIMIT 50\n- person_name: \"ALL\", info_type: \"contact_list\" → SELECT Name, Email, Phone, Title, Department FROM Contact ORDER BY Name LIMIT 50\n- person_name: \"Ana\", info_type: \"phone\" → SELECT Name, Phone, MobilePhone FROM Contact WHERE Name LIKE '%Ana%'\n- person_name: \"Pepe\", info_type: \"preferred_cake_flavor\" → SELECT Name, Preferred_Cake_Flavor__c FROM Contact WHERE Name LIKE '%Pepe%'\n- person_name: \"Juan\", info_type: \"tshirt_size\" → SELECT Name, T_Shirt_Size__c FROM Contact WHERE Name LIKE '%Juan%'\n- person_name: \"Mario\", info_type: \"favorite_food\" → SELECT Name, Favorite_Food__c FROM Contact WHERE Name LIKE '%Mario%'\n- person_name: \"Maria\", info_type: \"favorite_color\" → SELECT Name, Favorite_color__c FROM Contact WHERE Name LIKE '%Maria%'\n- person_name: \"Carlos\", info_type: \"nationality\" → SELECT Name, Nationality__c FROM Contact WHERE Name LIKE '%Carlos%'\n\nRespond only with the SOQL query, nothing else.",
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 2.2,
+        "position": [
+          320,
+          0
+        ],
+        "id": "fabd2b2c-0102-4ad4-b9b3-a28471badbe7",
+        "name": "Generate Personal Info Query"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "=You are Mila, a friendly assistant. Based on the personal information query results, provide a natural, conversational response.\n\nOriginal question: \"{{ $('Parse AI Response').first().json.original_message }}\"\nPerson asked about: {{ $('Parse AI Response').first().json.person_name }}\nInfo type requested: {{ $('Parse AI Response').first().json.info_type }}\nLanguage: {{ $('Parse AI Response').first().json.detected_language }}\n\nSalesforce results: {{ JSON.stringify($json) }}\n\nInstructions:\n- Respond in {{ $('Parse AI Response').first().json.detected_language }}\n- If no results: politely say you couldn't find that person or information\n- If results found: present the information naturally and conversationally\n- Don't mention \"Salesforce\", \"database\", or technical terms\n- Sound human and friendly, not robotic\n- For personal info like birthdays, be warm and personal\n- For skills/languages, be informative but casual\n- Keep it concise and direct\n- DO NOT ask follow-up questions or offer additional help\n- DO NOT suggest continuing the conversation\n- Just provide the requested information and end the response\n- If the specific information requested (like skills, languages, age, children) is not available in the results, politely explain that this information is not available in the system\n- For contact lists: Present the information in a clean, organized format\n- For lists with many results: Show the first several and mention the total count\n\nExamples:\n- Birthday: \"¡Juan cumple años el 15 de marzo! 🎂\"\n- Email: \"El correo de José Luis es josem@nicasource.com.\"\n- Phone: \"El teléfono de María es +505 8888-9999.\"\n- Preferred Cake Flavor: \"A Pepe le gusta el pastel de chocolate.\" / \"Pepe's preferred cake flavor is chocolate.\"\n- T-Shirt Size: \"Juan usa talla L.\" / \"Juan's t-shirt size is L.\"\n- Favorite Food: \"La comida favorita de Mario es pizza.\" / \"Mario's favorite food is pizza.\"\n- Favorite Color: \"El color favorito de Ana es azul.\" / \"Ana's favorite color is blue.\"\n- Nationality: \"Carlos es de Nicaragua.\" / \"Carlos is from Nicaragua.\"\n- Hire Date: \"Luis fue contratado el 15 de enero de 2022.\" / \"Luis was hired on January 15, 2022.\"\n- LinkedIn: \"El LinkedIn de Pedro es linkedin.com/in/pedro-lopez.\" / \"Pedro's LinkedIn is linkedin.com/in/pedro-lopez.\"\n- Allergies: \"María es alérgica a los mariscos.\" / \"María is allergic to seafood.\"\n- Jacket Size: \"La talla de chaqueta de Juan es M.\" / \"Juan's jacket size is M.\"\n- Department: \"Ana trabaja en Desarrollo.\" / \"Ana works in Development.\"\n- Contact list (Spanish): \"Aquí está la lista de trabajadores:\\n\\n👥 **Equipo:**\\n• Ana García - ana@company.com - Desarrolladora\\n• Juan Pérez - juan@company.com - Gerente\\n• María López - maria@company.com - Diseñadora\\n\\n(Mostrando 3 de 15 contactos)\"\n- Contact list (English): \"Here's the staff list:\\n\\n👥 **Team:**\\n• Ana García - ana@company.com - Developer\\n• Juan Pérez - juan@company.com - Manager\\n• María López - maria@company.com - Designer\\n\\n(Showing 3 of 15 contacts)\"\n- If info not available: \"Lo siento, esa información no está disponible en el sistema.\" / \"Sorry, that information is not available in the system.\"\n- If person not found: \"No pude encontrar información sobre esa persona en el sistema.\" / \"I couldn't find information about that person in the system.\"",
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 2.2,
+        "position": [
+          1008,
+          0
+        ],
+        "id": "720d7c38-4115-44cf-9166-452b8956e755",
+        "name": "Humanize Personal Response"
+      },
+      {
+        "parameters": {
+          "select": "user",
+          "user": {
+            "__rl": true,
+            "value": "={{ $('Slack Trigger').item.json.user }}",
+            "mode": "id"
+          },
+          "text": "={{ $json.output }}",
+          "otherOptions": {}
+        },
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.3,
+        "position": [
+          1376,
+          0
+        ],
+        "id": "38c56c9d-44f7-40d5-bb0b-cfa96a32c047",
+        "name": "Send Personal Info",
+        "webhookId": "a26f3472-0274-467a-b663-36caa06184a3",
+        "credentials": {
+          "slackApi": {
+            "id": "N2eQbu66RCaj9hiz",
+            "name": "Slack Account - API"
+          }
+        }
+      },
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          -784,
+          640
+        ],
+        "id": "d4fe6415-46f1-4c8a-a446-70318c2f0e7e",
+        "name": "No Operation, do nothing"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "74d89d31-a87c-41f6-9710-c247864ae2e8",
+                "leftValue": "={{ $json.type }}",
+                "rightValue": "message",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -1072,
+          480
+        ],
+        "id": "44392016-eee3-4006-8044-2e49cc1a04e2",
+        "name": "If message type is \"message\""
+      },
+      {
+        "parameters": {
+          "trigger": [
+            "message"
+          ],
+          "watchWorkspace": true,
+          "options": {
+            "userIds": [
+              "U09CWB1Q16F"
+            ]
+          }
+        },
         "type": "n8n-nodes-base.slackTrigger",
         "typeVersion": 1,
-        "position": [200, 300],
+        "position": [
+          -1264,
+          480
+        ],
+        "id": "a9ae820d-566e-46b8-80e7-ccd7e8427ce7",
+        "name": "Slack Trigger",
+        "webhookId": "11a93ddb-61f5-4b9c-9e9c-d3837ae651b2",
         "credentials": {
-          "slackApi": "Slack Account"
+          "slackApi": {
+            "id": "N2eQbu66RCaj9hiz",
+            "name": "Slack Account - API"
+          }
         }
       },
       {
         "parameters": {
-          "chatPrompt": "Eres un analizador de intención para un bot de Slack conectado a Salesforce.\nClasifica la siguiente pregunta y devuélvela como JSON:\n{\n \"intencion\": \"saludo | cumpleaños_hoy | mensaje_cumple | recomendacion | consulta_campo | otro\",\n \"nombre\": \"<nombre_persona_si_existe>\",\n \"campos\": [\"lista de campos solicitados\"],\n \"rol\": \"<rol solicitado si aplica>\",\n \"top\": <número solicitado si aplica>,\n \"idioma\": \"es | en\"\n}\n\nPregunta: \"{{$json[\"text\"]}}\""
+          "model": {
+            "__rl": true,
+            "value": "gpt-5-mini",
+            "mode": "list",
+            "cachedResultName": "gpt-5-mini"
+          },
+          "options": {}
         },
-        "name": "Intent Extractor",
-        "type": "n8n-nodes-base.openAi",
-        "typeVersion": 1,
-        "position": [500, 300],
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.2,
+        "position": [
+          320,
+          192
+        ],
+        "id": "3ae99176-4c46-43e7-94b4-17cd1b44bc0b",
+        "name": "OpenAI Chat Model1",
         "credentials": {
-          "openAiApi": "OpenAI Account"
+          "openAiApi": {
+            "id": "k5EcjwlAKjq4YYgj",
+            "name": "OpenAi account"
+          }
         }
       },
       {
         "parameters": {
-          "propertyName": "intencion",
-          "rules": [
-            { "operation": "equal", "value": "saludo" },
-            { "operation": "equal", "value": "consulta_campo" },
-            { "operation": "equal", "value": "cumpleaños_hoy" },
-            { "operation": "equal", "value": "mensaje_cumple" },
-            { "operation": "equal", "value": "recomendacion" }
-          ]
+          "model": {
+            "__rl": true,
+            "value": "gpt-5-mini",
+            "mode": "list",
+            "cachedResultName": "gpt-5-mini"
+          },
+          "options": {}
         },
-        "name": "Switch Intent",
-        "type": "n8n-nodes-base.switch",
-        "typeVersion": 1,
-        "position": [800, 300]
-      },
-      {
-        "parameters": {
-          "chatPrompt": "Genera un saludo amigable al usuario en {{$json[\"idioma\"]}}. Ejemplo: Hola {{ $json[\"user\"] }}, ¿cómo puedo ayudarte hoy?"
-        },
-        "name": "Generate Greeting",
-        "type": "n8n-nodes-base.openAi",
-        "typeVersion": 1,
-        "position": [1050, 100],
-        "credentials": { "openAiApi": "OpenAI Account" }
-      },
-      {
-        "parameters": {
-          "channel": "={{$json[\"channel\"]}}",
-          "text": "={{$json[\"text\"]}}"
-        },
-        "name": "Send Slack Greeting",
-        "type": "n8n-nodes-base.slack",
-        "typeVersion": 1,
-        "position": [1300, 100],
-        "credentials": { "slackApi": "Slack Account" }
-      },
-      {
-        "parameters": {
-          "operation": "getAll",
-          "sobject": "Contact",
-          "options": {
-            "conditions": "Name LIKE '%{{$json[\"nombre\"]}}%'"
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.2,
+        "position": [
+          1008,
+          192
+        ],
+        "id": "8d85a511-4b9b-415b-bec3-f839f26f78b7",
+        "name": "OpenAI Chat Model2",
+        "credentials": {
+          "openAiApi": {
+            "id": "k5EcjwlAKjq4YYgj",
+            "name": "OpenAi account"
           }
-        },
-        "name": "Salesforce Get Contact",
-        "type": "n8n-nodes-base.salesforce",
-        "typeVersion": 1,
-        "position": [1050, 200],
-        "credentials": { "salesforceApi": "Salesforce Account" }
+        }
       },
       {
         "parameters": {
-          "chatPrompt": "Pregunta: '{{$json[\"text\"]}}'\nCampos solicitados: {{$json[\"campos\"]}}\nDatos Salesforce: {{$json}}\nResponde de forma clara y natural en {{$json[\"idioma\"]}}."
+          "select": "user",
+          "user": {
+            "__rl": true,
+            "value": "={{ $('Slack Trigger').item.json.user }}",
+            "mode": "id"
+          },
+          "text": "={{ $json.detected_language === 'english' ? (['🤔 Thinking...', '💭 Let me check...', '🔍 Looking into it...', '⚡ Processing...', '🧠 Analyzing...'][Math.floor(Math.random() * 5)]) : (['🤔 Thinking...', '💭 Pensando...', '🔍 Looking into it...', '⚡ Processing...', '🧠 Analyzing...'][Math.floor(Math.random() * 5)]) }}",
+          "otherOptions": {}
         },
-        "name": "Format Field Response",
-        "type": "n8n-nodes-base.openAi",
-        "typeVersion": 1,
-        "position": [1300, 200],
-        "credentials": { "openAiApi": "OpenAI Account" }
-      },
-      {
-        "parameters": {
-          "channel": "={{$json[\"channel\"]}}",
-          "text": "={{$json[\"text\"]}}"
-        },
-        "name": "Send Slack Field Response",
         "type": "n8n-nodes-base.slack",
-        "typeVersion": 1,
-        "position": [1550, 200],
-        "credentials": { "slackApi": "Slack Account" }
-      },
-      {
-        "parameters": {
-          "operation": "getAll",
-          "sobject": "Contact",
-          "options": {
-            "conditions": "DAY_ONLY(Birthdate) = DAY_ONLY(TODAY)"
+        "typeVersion": 2.3,
+        "position": [
+          0,
+          0
+        ],
+        "id": "8e6b6527-f68e-412a-9286-27fd8ef890c8",
+        "name": "Send Loading Message",
+        "webhookId": "a26f3472-0274-467a-b663-36caa06184a3",
+        "credentials": {
+          "slackApi": {
+            "id": "N2eQbu66RCaj9hiz",
+            "name": "Slack Account - API"
           }
-        },
-        "name": "Salesforce Birthdays Today",
-        "type": "n8n-nodes-base.salesforce",
-        "typeVersion": 1,
-        "position": [1050, 300],
-        "credentials": { "salesforceApi": "Salesforce Account" }
+        }
       },
       {
         "parameters": {
-          "chatPrompt": "Hoy cumplen años estas personas: {{$json}}. Genera una respuesta amigable en {{$json[\"idioma\"]}}."
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "66a9cc09-fecf-43c5-97c9-6c309d0b6fca",
+                "leftValue": "={{ $json.requires_salesforce }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
         },
-        "name": "Format Birthday Response",
-        "type": "n8n-nodes-base.openAi",
-        "typeVersion": 1,
-        "position": [1300, 300],
-        "credentials": { "openAiApi": "OpenAI Account" }
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -272,
+          192
+        ],
+        "id": "ff5544ee-47bb-4de9-acac-9e6c284f7080",
+        "name": "Require Salesforce?"
       },
       {
         "parameters": {
-          "channel": "={{$json[\"channel\"]}}",
-          "text": "={{$json[\"text\"]}}"
+          "url": "https://nicasource--dreamit.sandbox.my.salesforce.com/services/data/v57.0/query",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "salesforceOAuth2Api",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "q",
+                "value": "={{ $('Generate Personal Info Query').item.json.output }}"
+              }
+            ]
+          },
+          "options": {}
         },
-        "name": "Send Slack Birthday",
-        "type": "n8n-nodes-base.slack",
-        "typeVersion": 1,
-        "position": [1550, 300],
-        "credentials": { "slackApi": "Slack Account" }
-      },
-      {
-        "parameters": {
-          "operation": "getAll",
-          "sobject": "Contact",
-          "options": {
-            "conditions": "={{$json[\"nombre\"] ? \"Name LIKE '%\" + $json[\"nombre\"] + \"%'\" : \"DAY_ONLY(Birthdate) = DAY_ONLY(TODAY)\"}}"
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          752,
+          0
+        ],
+        "id": "2a47e7dd-4e26-46b4-a271-f7a782424426",
+        "name": "HTTP Request",
+        "credentials": {
+          "salesforceOAuth2Api": {
+            "id": "i46VeJ8P9scmTVpw",
+            "name": "Salesforce account"
           }
-        },
-        "name": "Salesforce Birthday Message",
-        "type": "n8n-nodes-base.salesforce",
-        "typeVersion": 1,
-        "position": [1050, 400],
-        "credentials": { "salesforceApi": "Salesforce Account" }
-      },
-      {
-        "parameters": {
-          "chatPrompt": "Genera mensajes de cumpleaños personalizados para estas personas: {{$json}}. Usa su info laboral/personal si está disponible. Responde en {{$json[\"idioma\"]}}."
-        },
-        "name": "Format Birthday Message",
-        "type": "n8n-nodes-base.openAi",
-        "typeVersion": 1,
-        "position": [1300, 400],
-        "credentials": { "openAiApi": "OpenAI Account" }
-      },
-      {
-        "parameters": {
-          "channel": "={{$json[\"channel\"]}}",
-          "text": "={{$json[\"text\"]}}"
-        },
-        "name": "Send Slack Birthday Message",
-        "type": "n8n-nodes-base.slack",
-        "typeVersion": 1,
-        "position": [1550, 400],
-        "credentials": { "slackApi": "Slack Account" }
-      },
-      {
-        "parameters": {
-          "operation": "getAll",
-          "sobject": "Contact",
-          "options": {
-            "conditions": "Skills__c LIKE '%{{$json[\"rol\"]}}%'"
-          }
-        },
-        "name": "Salesforce Candidates",
-        "type": "n8n-nodes-base.salesforce",
-        "typeVersion": 1,
-        "position": [1050, 500],
-        "credentials": { "salesforceApi": "Salesforce Account" }
-      },
-      {
-        "parameters": {
-          "chatPrompt": "Se pide el top {{$json[\"top\"]}} para el rol {{$json[\"rol\"]}}. De esta lista de Salesforce {{$json}}, selecciona los mejores y respóndelo de forma natural en {{$json[\"idioma\"]}}."
-        },
-        "name": "Format Recommendation",
-        "type": "n8n-nodes-base.openAi",
-        "typeVersion": 1,
-        "position": [1300, 500],
-        "credentials": { "openAiApi": "OpenAI Account" }
-      },
-      {
-        "parameters": {
-          "channel": "={{$json[\"channel\"]}}",
-          "text": "={{$json[\"text\"]}}"
-        },
-        "name": "Send Slack Recommendation",
-        "type": "n8n-nodes-base.slack",
-        "typeVersion": 1,
-        "position": [1550, 500],
-        "credentials": { "slackApi": "Slack Account" }
-      },
-      {
-        "parameters": {
-          "channel": "={{$json[\"channel\"]}}",
-          "text": "Lo siento, aún no sé responder eso. Puedo ayudarte con saludos, cumpleaños o datos de Salesforce."
-        },
-        "name": "Send Slack Other",
-        "type": "n8n-nodes-base.slack",
-        "typeVersion": 1,
-        "position": [1050, 600],
-        "credentials": { "slackApi": "Slack Account" }
+        }
       }
     ],
+    "pinData": {},
     "connections": {
-      "Slack Trigger": { "main": [[{ "node": "Intent Extractor", "type": "main", "index": 0 }]] },
-      "Intent Extractor": { "main": [[{ "node": "Switch Intent", "type": "main", "index": 0 }]] },
-      "Switch Intent": {
+      "Language & Message Classifier": {
         "main": [
-          [{ "node": "Generate Greeting", "type": "main", "index": 0 }],
-          [{ "node": "Salesforce Get Contact", "type": "main", "index": 0 }],
-          [{ "node": "Salesforce Birthdays Today", "type": "main", "index": 0 }],
-          [{ "node": "Salesforce Birthday Message", "type": "main", "index": 0 }],
-          [{ "node": "Salesforce Candidates", "type": "main", "index": 0 }],
-          [{ "node": "Send Slack Other", "type": "main", "index": 0 }]
+          [
+            {
+              "node": "Parse AI Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
         ]
       },
-      "Generate Greeting": { "main": [[{ "node": "Send Slack Greeting", "type": "main", "index": 0 }]] },
-      "Salesforce Get Contact": { "main": [[{ "node": "Format Field Response", "type": "main", "index": 0 }]] },
-      "Format Field Response": { "main": [[{ "node": "Send Slack Field Response", "type": "main", "index": 0 }]] },
-      "Salesforce Birthdays Today": { "main": [[{ "node": "Format Birthday Response", "type": "main", "index": 0 }]] },
-      "Format Birthday Response": { "main": [[{ "node": "Send Slack Birthday", "type": "main", "index": 0 }]] },
-      "Salesforce Birthday Message": { "main": [[{ "node": "Format Birthday Message", "type": "main", "index": 0 }]] },
-      "Format Birthday Message": { "main": [[{ "node": "Send Slack Birthday Message", "type": "main", "index": 0 }]] },
-      "Salesforce Candidates": { "main": [[{ "node": "Format Recommendation", "type": "main", "index": 0 }]] },
-      "Format Recommendation": { "main": [[{ "node": "Send Slack Recommendation", "type": "main", "index": 0 }]] }
-    }
+      "Parse AI Response": {
+        "main": [
+          [
+            {
+              "node": "Require Salesforce?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Humanize Personal Response": {
+        "main": [
+          [
+            {
+              "node": "Send Personal Info",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Language & Message Classifier",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "If message type is \"message\"": {
+        "main": [
+          [
+            {
+              "node": "Language & Message Classifier",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "No Operation, do nothing",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Slack Trigger": {
+        "main": [
+          [
+            {
+              "node": "If message type is \"message\"",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model1": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Generate Personal Info Query",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model2": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Humanize Personal Response",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Loading Message": {
+        "main": [
+          [
+            {
+              "node": "Generate Personal Info Query",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Require Salesforce?": {
+        "main": [
+          [
+            {
+              "node": "Send Loading Message",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send Direct Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Personal Info Query": {
+        "main": [
+          [
+            {
+              "node": "HTTP Request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+              "HTTP Request": {
+          "main": [
+            [
+              {
+                "node": "Humanize Personal Response",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Humanize Personal Response": {
+          "main": [
+            [
+              {
+                "node": "Send Personal Info",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        }
+    },
+    "active": true,
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "versionId": "76eb41d8-1b50-442c-8849-5e6885729662",
+    "meta": {
+      "instanceId": "a20115e057f59f5dc4a80663403808257c06784aade2661a83823c7e804639ee"
+    },
+    "id": "lD2A0siAmUVzT9Fn",
+    "tags": []
   }
-  

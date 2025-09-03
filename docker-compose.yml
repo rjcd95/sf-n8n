@@ -12,4 +12,5 @@ services:
       - N8N_BASIC_AUTH_ACTIVE=true
       - N8N_BASIC_AUTH_USER=admin
       - N8N_BASIC_AUTH_PASSWORD=ASDF1234
+      - WEBHOOK_URL=https://9dc75c2e7b54.ngrok-free.app
     restart: unless-stopped
