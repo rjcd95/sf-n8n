@@ -126,7 +126,6 @@ SLACK_SIGNING_SECRET=your_slack_signing_secret
 ## Security Notes
 
 ### Data Privacy & Access Control
-- **User Restriction**: Bot only responds to specific user ID (`U09CWB1Q16F`)
 - **Data Filtering**: Excludes sensitive information (salaries, budgets, financial data)
 - **Field-Level Security**: Respects Salesforce field-level security settings
 - **Audit Trail**: All queries are logged in Salesforce
@@ -144,24 +143,6 @@ SLACK_SIGNING_SECRET=your_slack_signing_secret
 - **Access Logging**: Maintains audit logs for compliance
 - **Data Minimization**: Only accesses necessary personal information
 
-## Repository Structure
-
-```
-mila-bot/
-├── n8n-workflow.json          # Main n8n workflow definition
-├── README.md                  # This documentation
-├── docker-compose.yml         # Docker setup for n8n
-├── docs/
-│   ├── api-reference.md       # API documentation
-│   ├── deployment.md          # Deployment guide
-│   └── troubleshooting.md     # Common issues and solutions
-├── tests/
-│   ├── test-queries.json      # Test query examples
-│   └── validation-scripts.js  # Query validation scripts
-└── scripts/
-    ├── setup-salesforce.js    # Salesforce setup automation
-    └── deploy-workflow.js     # Workflow deployment script
-```
 
 ## AI Model & Prompts
 
@@ -209,6 +190,88 @@ mila-bot/
 - **Salesforce API**: Included in org limits
 - **Slack API**: Free tier sufficient
 - **Monthly Cost**: ~$50-100 for 1000 queries
+
+## Example Queries
+
+Mila Bot can handle a wide variety of personal information queries in both Spanish and English. Here are some examples:
+
+### Personal Information Queries
+
+#### Spanish Examples
+- **Cumpleaños**: "¿Cuál es el cumpleaños de Juan Pérez?" / "¿Hay alguien cumpliendo años esta semana?"
+- **Contacto**: "Dame el correo de María" / "¿Cuál es el teléfono de Pedro?"
+- **Preferencias**: "¿Cuál es la comida favorita de Ana?" / "¿Qué talla de camisa usa Juan?"
+- **Información personal**: "¿Cuál es la nacionalidad de Carlos?" / "¿Cuándo fue contratado Luis?"
+
+#### English Examples
+- **Birthdays**: "What's Pedro's birthday?" / "Who has a birthday this week?"
+- **Contact**: "What's Ana's email address?" / "Give me María's phone number"
+- **Preferences**: "What's Juan's favorite food?" / "What shirt size does Pedro wear?"
+- **Personal info**: "What's Carlos's nationality?" / "When was Luis hired?"
+
+### Skills & Expertise Queries
+
+#### Spanish Examples
+- **Habilidades individuales**: "Dame los skills de René Cortez" / "¿Qué tecnologías conoce Juan?"
+- **Búsqueda de skills**: "¿Quién sabe Python?" / "¿Alguien domina Node.js?"
+
+#### English Examples
+- **Individual skills**: "What skills does Ana have?" / "What technologies does Juan know?"
+- **Skill search**: "Who knows JavaScript?" / "Anyone proficient in TypeScript?"
+
+### Client & Team Queries
+
+#### Spanish Examples
+- **Asignaciones**: "¿En qué cliente está Juan Pérez?" / "¿Quiénes están en scalar?"
+- **Conteos**: "¿Cuántos empleados tiene scalar?" / "Lista de clientes"
+
+#### English Examples
+- **Assignments**: "Where does Ana work?" / "Who is working at scalar?"
+- **Counts**: "How many employees are at scalar?" / "Client list"
+
+### Family & Personal Details
+
+#### Spanish Examples
+- **Familia**: "¿Tiene hijos María?" / "¿Cuántos hijos tiene Ana?"
+- **Preferencias completas**: "¿Cuáles son las preferencias de Juan?" / "¿Qué le gusta a Pedro?"
+
+#### English Examples
+- **Family**: "Does Carlos have kids?" / "Tell me about Pedro's children"
+- **Complete preferences**: "What are Ana's preferences?" / "What does Pedro like?"
+
+### Birthday & Celebration Queries
+
+#### Spanish Examples
+- **Esta semana**: "¿Hay alguien cumpliendo años esta semana?" / "¿Alguien cumple esta semana?"
+- **Próxima semana**: "¿Quién cumple años la próxima semana?"
+- **Este mes**: "¿Hay cumpleaños este mes?" / "¿Quién cumple este mes?"
+
+#### English Examples
+- **This week**: "Who has a birthday this week?" / "Anyone celebrating birthday this week?"
+- **Next week**: "Any birthdays next week?"
+- **This month**: "Any birthdays this month?" / "Birthdays next month?"
+
+### Invalid Queries (Bot will decline)
+
+#### Spanish Examples
+- **Salarios**: "¿Cuánto gana Juan?" / "¿Cuál es el salario de Ana?"
+- **Presupuestos**: "¿Cuál es el presupuesto del proyecto?" / "¿Cuánto cuesta el proyecto?"
+
+#### English Examples
+- **Salaries**: "How much does Juan earn?" / "What's Ana's salary?"
+- **Budgets**: "What's the project budget?" / "How much does the project cost?"
+
+### Response Examples
+
+#### Spanish Responses
+- **Cumpleaños**: "¡Juan cumple años el 15 de marzo! 🎂"
+- **Email**: "El correo de José Luis es josem@nicasource.com."
+- **Skills**: "Skills de René Cortez:\n\n🛠️ **Habilidades:**\n• JavaScript (Avanzado)\n• React (Intermedio)"
+
+#### English Responses
+- **Birthday**: "Juan's birthday is March 15th! 🎂"
+- **Email**: "José Luis's email is josem@nicasource.com."
+- **Skills**: "René Cortez's skills:\n\n🛠️ **Skills:**\n• JavaScript (Advanced)\n• React (Intermediate)"
 
 ## Workflow Architecture
 
@@ -274,5 +337,6 @@ Response Humanizer → Final Response → Slack Response
 
 **Version**: 1.0.0  
 **Last Updated**: December 2024  
-**Maintainer**: René Cortez  
+**Maintainer**: René Cortez, [Carlos Cruz](https://github.com/carloscruzns)  
+**Author**: René Cortez, [Carlos Cruz](https://github.com/carloscruzns)  
 **License**: Internal Use Only
