@@ -1,16 +1,47 @@
-version: "3.8"
+version: '3.8'
 
 services:
   n8n:
-    image: n8nio/n8n
-    container_name: n8n
+    image: n8nio/n8n:latest
+    container_name: mila-bot-n8n
+    restart: unless-stopped
     ports:
       - "5678:5678"
-    volumes:
-      - ~/.n8n:/home/node/.n8n
     environment:
       - N8N_BASIC_AUTH_ACTIVE=true
       - N8N_BASIC_AUTH_USER=admin
-      - N8N_BASIC_AUTH_PASSWORD=ASDF1234
-      - WEBHOOK_URL=https://9dc75c2e7b54.ngrok-free.app
+      - N8N_BASIC_AUTH_PASSWORD=your_secure_password
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=America/Managua
+      - N8N_LOG_LEVEL=info
+      - N8N_METRICS=true
+      - N8N_DIAGNOSTICS_ENABLED=true
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-workflow.json:/home/node/.n8n/workflows/mila-bot.json
+    networks:
+      - mila-bot-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: mila-bot-redis
     restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mila-bot-network
+
+volumes:
+  n8n_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  mila-bot-network:
+    driver: bridge
