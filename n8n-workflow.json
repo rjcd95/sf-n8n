@@ -10,33 +10,33 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        -2800,
-        -208
+        -2864,
+        -256
       ],
-      "id": "6bba32ba-8002-401f-9928-bb927ca05e68",
+      "id": "56768661-fa70-4719-b9af-ee15475e6a3c",
       "name": "Language & Message Classifier"
     },
     {
       "parameters": {
         "model": {
           "__rl": true,
-          "value": "gpt-5-mini",
+          "value": "gpt-5",
           "mode": "list",
-          "cachedResultName": "gpt-5-mini"
+          "cachedResultName": "gpt-5"
         },
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        -2800,
-        64
+        -2864,
+        32
       ],
-      "id": "5642f0b1-6874-4cc2-a0b4-dfcc45a28b88",
+      "id": "79fb7925-d26f-4821-9471-068e402e9a8b",
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
-          "id": "k5EcjwlAKjq4YYgj",
+          "id": "Bv83KLNGRtH8N3Ik",
           "name": "OpenAi account"
         }
       }
@@ -48,10 +48,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -2480,
-        -208
+        -2544,
+        -256
       ],
-      "id": "d8321df5-1dfe-4b0a-80a0-669660d14cba",
+      "id": "408d414c-f9e2-40b6-bc07-3407b1113b96",
       "name": "Parse AI Response"
     },
     {
@@ -68,15 +68,15 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.3,
       "position": [
-        -2016,
-        0
+        -2080,
+        -48
       ],
-      "id": "02d7283a-0f29-4d3f-b4cc-751f4ac623c9",
+      "id": "792d0741-d27d-4094-8b7a-4e9929d9d5d8",
       "name": "Send Direct Response",
       "webhookId": "a26f3472-0274-467a-b663-36caa06184a3",
       "credentials": {
         "slackApi": {
-          "id": "N2eQbu66RCaj9hiz",
+          "id": "zrPfJgLX5iC1E75U",
           "name": "Slack Account - API"
         }
       }
@@ -90,10 +90,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        -1696,
-        -400
+        -1760,
+        -448
       ],
-      "id": "a31989ba-005a-4f86-812c-18fa9dc1fbb9",
+      "id": "9ed0723d-c7b1-4c7a-8ce3-a1dcc6aa02d8",
       "name": "Generate Personal Info Query"
     },
     {
@@ -105,10 +105,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        -1008,
-        -400
+        -1072,
+        -448
       ],
-      "id": "3710497b-4a20-4ccf-8e78-1fff80592867",
+      "id": "6dc9e3b2-8334-4212-a42c-e215bc3769c5",
       "name": "Humanize Personal Response"
     },
     {
@@ -125,15 +125,15 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.3,
       "position": [
-        -640,
-        -400
+        -704,
+        -448
       ],
-      "id": "527385f9-7ac5-40dc-bd93-d46b236dbba3",
+      "id": "f83b2216-ce12-4302-a245-a6e812c48220",
       "name": "Send Personal Info",
       "webhookId": "a26f3472-0274-467a-b663-36caa06184a3",
       "credentials": {
         "slackApi": {
-          "id": "N2eQbu66RCaj9hiz",
+          "id": "zrPfJgLX5iC1E75U",
           "name": "Slack Account - API"
         }
       }
@@ -143,10 +143,10 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        -2800,
-        240
+        -2864,
+        208
       ],
-      "id": "80ed53a8-c99b-4928-b04f-31555e512348",
+      "id": "a7e9e6a7-bd09-4e3c-8d22-762e1b741e87",
       "name": "No Operation, do nothing"
     },
     {
@@ -176,10 +176,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -3088,
-        80
+        -3152,
+        48
       ],
-      "id": "05b8d0e3-5dae-4c6a-aed4-8167a0a87919",
+      "id": "7f0079f9-ec95-4069-a3b0-f56c9b22f0e5",
       "name": "If message type is \"message\""
     },
     {
@@ -197,15 +197,15 @@
       "type": "n8n-nodes-base.slackTrigger",
       "typeVersion": 1,
       "position": [
-        -3280,
-        80
+        -3344,
+        48
       ],
-      "id": "d7f3b20d-3a4c-4945-acea-b46f65322337",
+      "id": "d253a850-60b3-40a9-ab64-1e7d1e18278d",
       "name": "Slack Trigger",
       "webhookId": "11a93ddb-61f5-4b9c-9e9c-d3837ae651b2",
       "credentials": {
         "slackApi": {
-          "id": "N2eQbu66RCaj9hiz",
+          "id": "zrPfJgLX5iC1E75U",
           "name": "Slack Account - API"
         }
       }
@@ -214,23 +214,23 @@
       "parameters": {
         "model": {
           "__rl": true,
-          "value": "gpt-5-mini",
+          "value": "gpt-5",
           "mode": "list",
-          "cachedResultName": "gpt-5-mini"
+          "cachedResultName": "gpt-5"
         },
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        -1696,
-        -208
+        -1760,
+        -256
       ],
-      "id": "5119f354-a4d9-4ec9-9156-0b7aabec2bb1",
+      "id": "6bd304bf-35dd-4955-b17b-05f80d880989",
       "name": "OpenAI Chat Model1",
       "credentials": {
         "openAiApi": {
-          "id": "k5EcjwlAKjq4YYgj",
+          "id": "Bv83KLNGRtH8N3Ik",
           "name": "OpenAi account"
         }
       }
@@ -239,23 +239,23 @@
       "parameters": {
         "model": {
           "__rl": true,
-          "value": "gpt-5-mini",
+          "value": "gpt-5",
           "mode": "list",
-          "cachedResultName": "gpt-5-mini"
+          "cachedResultName": "gpt-5"
         },
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        -1008,
-        -208
+        -1072,
+        -256
       ],
-      "id": "3646a280-2671-4ff3-a652-84c775095ebd",
+      "id": "60ce0455-2b02-49b1-b4d3-53dc58f537dd",
       "name": "OpenAI Chat Model2",
       "credentials": {
         "openAiApi": {
-          "id": "k5EcjwlAKjq4YYgj",
+          "id": "Bv83KLNGRtH8N3Ik",
           "name": "OpenAi account"
         }
       }
@@ -274,15 +274,15 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.3,
       "position": [
-        -2016,
-        -400
+        -2080,
+        -448
       ],
-      "id": "17aab9f1-807d-4f9f-abe3-7f8f03750d1a",
+      "id": "edfa9041-b7dc-47bc-92b6-978a4e15962c",
       "name": "Send Loading Message",
       "webhookId": "a26f3472-0274-467a-b663-36caa06184a3",
       "credentials": {
         "slackApi": {
-          "id": "N2eQbu66RCaj9hiz",
+          "id": "zrPfJgLX5iC1E75U",
           "name": "Slack Account - API"
         }
       }
@@ -315,10 +315,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -2288,
-        -208
+        -2352,
+        -256
       ],
-      "id": "8d4e3f9b-9ace-4711-868d-744ce725d6ac",
+      "id": "7a5c3fbf-4f7e-477d-8cfe-11b43a92ba73",
       "name": "Require Salesforce?"
     },
     {
@@ -340,14 +340,14 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -1264,
-        -400
+        -1328,
+        -448
       ],
-      "id": "0453b57f-4840-449f-b518-0943ee22d53d",
+      "id": "f60482f2-de2a-411d-b0e0-b22fe632c823",
       "name": "HTTP Request",
       "credentials": {
         "salesforceOAuth2Api": {
-          "id": "i46VeJ8P9scmTVpw",
+          "id": "9AYbN0CAOrbuIu3R",
           "name": "Salesforce account"
         }
       }
@@ -506,11 +506,11 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "2bcf0172-8d85-4bb3-8dd4-f80c2b6a8232",
+  "versionId": "0b43d601-d2c7-4a4c-b5e9-82368238661e",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "a20115e057f59f5dc4a80663403808257c06784aade2661a83823c7e804639ee"
+    "instanceId": "55278fc89808c2f2dc6ef1d4f1c05d1b80b8ba30b54db622846bd04a0252d1b4"
   },
-  "id": "nFP3DvJUZpxIBXxE",
+  "id": "c8qHKwMDMBWxMndK",
   "tags": []
 }
