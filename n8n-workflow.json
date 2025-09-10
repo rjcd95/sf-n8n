@@ -1,515 +1,516 @@
 {
-    "name": "My workflow 6",
-    "nodes": [
-      {
-        "parameters": {
-          "promptType": "define",
-          "text": "=You are Mila, a helpful personal information assistant. Your task is to:\n1. Detect the language of the user's message\n2. Classify the message type (greeting, personal_info_request, or other)\n3. Identify what specific personal information is being requested\n\nFor the message: \"{{ $json.text }}\"\n\nCRITICAL: If the message contains birthday/cumpleaños keywords, NEVER use contact_list - always use birthday types!\n\nPlease respond in this exact JSON format:\n{\n  \"detected_language\": \"spanish\" or \"english\",\n  \"message_type\": \"greeting\" or \"personal_info_request\" or \"other\",\n  \"requires_salesforce\": true or false,\n  \"person_name\": \"extracted person name if any or 'ALL' for lists\",\n  \"info_type\": \"birthday|birthday_this_week|birthday_next_week|birthday_this_month|birthday_next_month|full_name|phone|email|title|department|contact_list|preferred_cake_flavor|preferred_pizza_flavor|favorite_color|favorite_food|allergies|sweet_or_salty|tshirt_size|jacket_size|polo_size|jogger_size|personality_type|hire_date|employment_status|area|unit|nationality|national_id|marital_status|gender|pronouns|country|city|home_address|alternative_address|zip|mobile|home_phone|personal_email|linkedin|facebook|twitter|employee_skills|skill_search|client_allocation_list|client_allocation_count|client_employee_count|client_list|employee_client_assignment|employee_client_info|employee_preferences|employee_children|children_info|other_personal\",\n  \"search_parameter\": \"extracted skill or client name if applicable\",\n  \"response\": \"your response here\"\n}\n\nRules:\n- If it's a greeting: Set message_type to \"greeting\", requires_salesforce to false, provide a friendly greeting response\n- If it's asking for PERSONAL information about staff/employees: Set message_type to \"personal_info_request\", requires_salesforce to true, extract person_name and info_type, and set response to \"Buscando información...\" (Spanish) or \"Searching for information...\" (English)\n- If asking for LISTS of people/contacts: Set person_name to \"ALL\", info_type to \"contact_list\", requires_salesforce to true\n- BIRTHDAY RULES - If asking about birthdays/cumpleaños, ALWAYS use birthday info_types:\n  * \"esta semana\" / \"this week\" → birthday_this_week\n  * \"próxima semana\" / \"next week\" → birthday_next_week  \n  * \"este mes\" / \"this month\" → birthday_this_month\n  * \"próximo mes\" / \"next month\" → birthday_next_month\n  * Specific person birthday → birthday\n- CLOTHING SIZE RULES - For clothing/shirt size queries, map these variants:\n  * \"camisa\", \"camiseta\", \"playera\", \"franela\", \"remera\", \"blusa\", \"shirt\", \"t-shirt\", \"tshirt\", \"tee\" → tshirt_size\n  * \"chaqueta\", \"jacket\" → jacket_size\n  * \"polo\" → polo_size\n  * \"jogger\", \"pantalón deportivo\" → jogger_size\n- EXCLUDE: salaries, budgets, company financial information, clients, non-personal data\n- For anything else: Set message_type to \"other\", requires_salesforce to false, and politely decline\n- Always respond in the same language as detected\n- Make responses sound natural and human-like, not robotic\n- NEVER ask for confirmation when requires_salesforce is true - the search will happen automatically\n\nCONTACT KEYWORDS - These refer to Salesforce Contacts (employees/staff):\n- Spanish: personas, trabajadores, colaboradores, empleados, equipo, staff, gente, compañeros\n- English: people, workers, employees, staff, colleagues, coworkers, team members, persons\n\nBIRTHDAY KEYWORDS - These ALWAYS indicate birthday queries:\n- Spanish: cumpleaños, cumple, nacimiento, nació, celebra, aniversario\n- English: birthday, birthdays, born, celebrates, anniversary\n- Time phrases: esta semana, this week, próxima semana, next week, este mes, this month, próximo mes, next month\n\nSKILL KEYWORDS - These ALWAYS indicate skill/technology queries:\n- Spanish: skills, habilidades, tecnologías, lenguajes, programación, conoce, sabe, domina\n- English: skills, technologies, languages, programming, knows, expertise, proficient\n- Technology names: JavaScript, TypeScript, Python, React, Node.js, Java, C#, PHP, etc.\n\nCLIENT KEYWORDS - These ALWAYS indicate client/account queries:\n- Spanish: cliente, clientes, empresa, compañía, cuenta, cuentas, organización\n- English: client, clients, account, accounts, company, companies, organization\n- Quantity phrases: cuántos empleados, how many employees, cantidad de empleados, employee count\n\nEMPLOYEE-CLIENT ASSIGNMENT KEYWORDS - These indicate employee-client relationship queries:\n- Spanish: en qué cliente, dónde trabaja, qué empresa, cuál cliente, asignado a, trabajando en\n- English: which client, where working, what company, assigned to, working at, working for\n\nPREFERENCES KEYWORDS - These indicate preference/taste queries:\n- Spanish: preferencias, gustos, favorito, favorita, prefiere, le gusta, sabor, color, talla, dulce, salado, comida, platillo, plato, alimento, alimentos, pastel, pizza, cake, torta, bizcocho, alergia, alergias, aversión, comer, come\n- English: preferences, tastes, favorite, prefers, likes, flavor, color, size, sweet, salty\n\nSIZE KEYWORDS - These indicate specific clothing size queries:\n- Spanish: talla, tallas, medida, camisa, camiseta, playera, franela, remera, blusa, chaqueta, jacket, polo, jogger, pantalón\n- English: size, sizes, shirt, t-shirt, tshirt, tee, top, jacket, polo, jogger, pants\n\nCHILDREN KEYWORDS - These indicate children/family information queries:\n- Spanish: hijos, hijas, niños, niñas, familia, bebé, hijo, hija, children, kids\n- English: children, kids, family, baby, son, daughter, child\n\nExamples of VALID requests:\n- \"¿Cuándo es el cumpleaños de Juan?\" → person_name: \"Juan\", info_type: \"birthday\"\n- \"Dame el correo de María\" → person_name: \"María\", info_type: \"email\"\n- \"Lista de trabajadores\" → person_name: \"ALL\", info_type: \"contact_list\"\n- \"Dame todas las personas de la empresa\" → person_name: \"ALL\", info_type: \"contact_list\"\n- \"Show me all employees\" → person_name: \"ALL\", info_type: \"contact_list\"\n- \"List of staff members\" → person_name: \"ALL\", info_type: \"contact_list\"\n- \"¿Quiénes trabajan aquí?\" → person_name: \"ALL\", info_type: \"contact_list\"\n- \"What's Pedro's phone number?\" → person_name: \"Pedro\", info_type: \"phone\"\n- \"What is the Preferred Cake Flavor of Pepe?\" → person_name: \"Pepe\", info_type: \"preferred_cake_flavor\"\n- \"What is the T-Shirt Size of Juan?\" → person_name: \"Juan\", info_type: \"tshirt_size\"\n- \"What is the Favorite Food of Mario?\" → person_name: \"Mario\", info_type: \"favorite_food\"\n- \"¿Cuál es la comida favorita de Ana?\" → person_name: \"Ana\", info_type: \"favorite_food\"\n- \"¿Qué talla de camisa usa Pedro?\" → person_name: \"Pedro\", info_type: \"tshirt_size\"\n- \"What's Ana's jacket size?\" → person_name: \"Ana\", info_type: \"jacket_size\"\n- \"¿Qué talla de chaqueta usa Juan?\" → person_name: \"Juan\", info_type: \"jacket_size\"\n- \"What polo size does María wear?\" → person_name: \"María\", info_type: \"polo_size\"\n- \"¿Qué talla de polo usa Carlos?\" → person_name: \"Carlos\", info_type: \"polo_size\"\n- \"What's Pedro's jogger size?\" → person_name: \"Pedro\", info_type: \"jogger_size\"\n- \"¿Qué talla de jogger usa Ana?\" → person_name: \"Ana\", info_type: \"jogger_size\"\n- \"What shirt size does Luis wear?\" → person_name: \"Luis\", info_type: \"tshirt_size\"\n- \"¿Cuál es la talla de camisa de María?\" → person_name: \"María\", info_type: \"tshirt_size\"\n- \"¿Qué talla de camiseta usa Juan?\" → person_name: \"Juan\", info_type: \"tshirt_size\"\n- \"What's Pedro's shirt size?\" → person_name: \"Pedro\", info_type: \"tshirt_size\"\n- \"¿Cuál es la talla de playera de Ana?\" → person_name: \"Ana\", info_type: \"tshirt_size\"\n- \"What tee size does Carlos wear?\" → person_name: \"Carlos\", info_type: \"tshirt_size\"\n- \"¿Qué talla de franela usa María?\" → person_name: \"María\", info_type: \"tshirt_size\"\n- \"What's Luis's t-shirt size?\" → person_name: \"Luis\", info_type: \"tshirt_size\"\n- \"What's Maria's favorite color?\" → person_name: \"Maria\", info_type: \"favorite_color\"\n- \"¿Cuándo fue contratado Luis?\" → person_name: \"Luis\", info_type: \"hire_date\"\n- \"What's John's LinkedIn profile?\" → person_name: \"John\", info_type: \"linkedin\"\n- \"¿Cuál es la nacionalidad de Carlos?\" → person_name: \"Carlos\", info_type: \"nationality\"\n- \"Dame los skills de René Cortez\" → person_name: \"René Cortez\", info_type: \"employee_skills\"\n- \"¿Qué tecnologías conoce Juan?\" → person_name: \"Juan\", info_type: \"employee_skills\"\n- \"What skills does Ana have?\" → person_name: \"Ana\", info_type: \"employee_skills\"\n- \"¿Qué lenguajes sabe Pedro?\" → person_name: \"Pedro\", info_type: \"employee_skills\"\n- \"Who has typescript skills?\" → person_name: \"ALL\", info_type: \"skill_search\", search_parameter: \"typescript\"\n- \"¿Quién sabe Python?\" → person_name: \"ALL\", info_type: \"skill_search\", search_parameter: \"Python\"\n- \"¿Quién conoce React?\" → person_name: \"ALL\", info_type: \"skill_search\", search_parameter: \"React\"\n- \"Who knows JavaScript?\" → person_name: \"ALL\", info_type: \"skill_search\", search_parameter: \"JavaScript\"\n- \"¿Alguien domina Node.js?\" → person_name: \"ALL\", info_type: \"skill_search\", search_parameter: \"Node.js\"\n- \"¿Quiénes están en scalar?\" → person_name: \"ALL\", info_type: \"client_allocation_list\", search_parameter: \"scalar\"\n- \"Who is working at scalar?\" → person_name: \"ALL\", info_type: \"client_allocation_list\", search_parameter: \"scalar\"\n- \"¿Quiénes trabajan en scalar?\" → person_name: \"ALL\", info_type: \"client_allocation_list\", search_parameter: \"scalar\"\n- \"How many employees are at scalar?\" → person_name: \"ALL\", info_type: \"client_allocation_count\", search_parameter: \"scalar\"\n- \"¿Cuántos empleados tiene scalar?\" → person_name: \"ALL\", info_type: \"client_employee_count\", search_parameter: \"scalar\"\n- \"¿Cuántos empleados hay en scalar?\" → person_name: \"ALL\", info_type: \"client_employee_count\", search_parameter: \"scalar\"\n- \"Employee count for scalar\" → person_name: \"ALL\", info_type: \"client_employee_count\", search_parameter: \"scalar\"\n- \"Lista de clientes\" → person_name: \"ALL\", info_type: \"client_list\"\n- \"¿En qué cliente está Juan Pérez?\" → person_name: \"Juan Pérez\", info_type: \"employee_client_assignment\"\n- \"Where does Ana work?\" → person_name: \"Ana\", info_type: \"employee_client_assignment\"\n- \"¿Dónde trabaja Pedro?\" → person_name: \"Pedro\", info_type: \"employee_client_assignment\"\n- \"What company is María assigned to?\" → person_name: \"María\", info_type: \"employee_client_assignment\"\n- \"¿A qué empresa está asignado Carlos?\" → person_name: \"Carlos\", info_type: \"employee_client_assignment\"\n- \"¿Cuáles son las preferencias de Juan?\" → person_name: \"Juan\", info_type: \"employee_preferences\"\n- \"What are Ana's preferences?\" → person_name: \"Ana\", info_type: \"employee_preferences\"\n- \"¿Qué le gusta a Pedro?\" → person_name: \"Pedro\", info_type: \"employee_preferences\"\n- \"¿Tiene hijos María?\" → person_name: \"María\", info_type: \"employee_children\"\n- \"Does Carlos have kids?\" → person_name: \"Carlos\", info_type: \"employee_children\"\n- \"¿Cuántos hijos tiene Ana?\" → person_name: \"Ana\", info_type: \"children_info\"\n- \"Tell me about Pedro's children\" → person_name: \"Pedro\", info_type: \"children_info\"\n- \"¿Hay alguien cumpliendo años esta semana?\" → person_name: \"ALL\", info_type: \"birthday_this_week\"\n- \"Hay alguien cumpliendo años esta semana?\" → person_name: \"ALL\", info_type: \"birthday_this_week\"\n- \"¿Alguien cumple esta semana?\" → person_name: \"ALL\", info_type: \"birthday_this_week\"\n- \"Who has a birthday this week?\" → person_name: \"ALL\", info_type: \"birthday_this_week\"\n- \"Anyone celebrating birthday this week?\" → person_name: \"ALL\", info_type: \"birthday_this_week\"\n- \"¿Quién cumple años la próxima semana?\" → person_name: \"ALL\", info_type: \"birthday_next_week\"\n- \"Any birthdays this month?\" → person_name: \"ALL\", info_type: \"birthday_this_month\"\n- \"¿Hay cumpleaños este mes?\" → person_name: \"ALL\", info_type: \"birthday_this_month\"\n- \"¿Quién cumple este mes?\" → person_name: \"ALL\", info_type: \"birthday_this_month\"\n- \"Birthdays next month?\" → person_name: \"ALL\", info_type: \"birthday_next_month\"\n\nExamples of INVALID requests (should be \"other\"):\n- \"¿Cuánto gana Juan?\" → salary (not personal)\n- \"¿Cuál es el presupuesto del proyecto?\" → budget (not personal)\n- \"¿Quiénes son nuestros clientes?\" → business info (not contacts/employees)",
-          "options": {}
-        },
-        "type": "@n8n/n8n-nodes-langchain.agent",
-        "typeVersion": 2.2,
-        "position": [
-          -784,
-          192
-        ],
-        "id": "4b130b58-3b9c-44f3-a325-402d2c3839e0",
-        "name": "Language & Message Classifier"
+  "name": "Mila Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are Mila, a helpful personal information assistant. Your task is to:\n1. Detect the language of the user's message\n2. Classify the message type (greeting, personal_info_request, or other)\n3. Identify what specific personal information is being requested\n\nFor the message: \"{{ $json.text }}\"\n\nCRITICAL: If the message contains birthday/cumpleaños keywords, NEVER use contact_list - always use birthday types!\n\nPlease respond in this exact JSON format:\n{\n  \"detected_language\": \"spanish\" or \"english\",\n  \"message_type\": \"greeting\" or \"personal_info_request\" or \"other\",\n  \"requires_salesforce\": true or false,\n  \"person_name\": \"extracted person name if any or 'ALL' for lists\",\n  \"info_type\": \"birthday|birthday_this_week|birthday_next_week|birthday_this_month|birthday_next_month|full_name|phone|email|title|department|contact_list|preferred_cake_flavor|preferred_pizza_flavor|favorite_color|favorite_food|allergies|sweet_or_salty|tshirt_size|jacket_size|polo_size|jogger_size|personality_type|hire_date|employment_status|area|unit|nationality|national_id|marital_status|gender|pronouns|country|city|home_address|alternative_address|zip|mobile|home_phone|personal_email|linkedin|facebook|twitter|employee_skills|skill_search|client_allocation_list|client_allocation_count|client_employee_count|client_list|employee_client_assignment|employee_client_info|employee_preferences|employee_children|children_info|other_personal\",\n  \"search_parameter\": \"extracted skill or client name if applicable\",\n  \"response\": \"your response here\"\n}\n\nRules:\n- If it's a greeting: Set message_type to \"greeting\", requires_salesforce to false, provide a friendly greeting response\n- If it's asking for PERSONAL information about staff/employees: Set message_type to \"personal_info_request\", requires_salesforce to true, extract person_name and info_type, and set response to \"Buscando información...\" (Spanish) or \"Searching for information...\" (English)\n- If asking for LISTS of people/contacts: Set person_name to \"ALL\", info_type to \"contact_list\", requires_salesforce to true\n- BIRTHDAY RULES - If asking about birthdays/cumpleaños, ALWAYS use birthday info_types:\n  * \"esta semana\" / \"this week\" → birthday_this_week\n  * \"próxima semana\" / \"next week\" → birthday_next_week  \n  * \"este mes\" / \"this month\" → birthday_this_month\n  * \"próximo mes\" / \"next month\" → birthday_next_month\n  * Specific person birthday → birthday\n- CLOTHING SIZE RULES - For clothing/shirt size queries, map these variants:\n  * \"camisa\", \"camiseta\", \"playera\", \"franela\", \"remera\", \"blusa\", \"shirt\", \"t-shirt\", \"tshirt\", \"tee\" → tshirt_size\n  * \"chaqueta\", \"jacket\" → jacket_size\n  * \"polo\" → polo_size\n  * \"jogger\", \"pantalón deportivo\" → jogger_size\n- EXCLUDE: salaries, budgets, company financial information, clients, non-personal data\n- For anything else: Set message_type to \"other\", requires_salesforce to false, and politely decline\n- Always respond in the same language as detected\n- Make responses sound natural and human-like, not robotic\n- NEVER ask for confirmation when requires_salesforce is true - the search will happen automatically\n\nCONTACT KEYWORDS - These refer to Salesforce Contacts (employees/staff):\n- Spanish: personas, trabajadores, colaboradores, empleados, equipo, staff, gente, compañeros\n- English: people, workers, employees, staff, colleagues, coworkers, team members, persons\n\nBIRTHDAY KEYWORDS - These ALWAYS indicate birthday queries:\n- Spanish: cumpleaños, cumple, nacimiento, nació, celebra, aniversario\n- English: birthday, birthdays, born, celebrates, anniversary\n- Time phrases: esta semana, this week, próxima semana, next week, este mes, this month, próximo mes, next month\n\nSKILL KEYWORDS - These ALWAYS indicate skill/technology queries:\n- Spanish: skills, habilidades, tecnologías, lenguajes, programación, conoce, sabe, domina\n- English: skills, technologies, languages, programming, knows, expertise, proficient\n- Technology names: JavaScript, TypeScript, Python, React, Node.js, Java, C#, PHP, etc.\n\nCLIENT KEYWORDS - These ALWAYS indicate client/account queries:\n- Spanish: cliente, clientes, empresa, compañía, cuenta, cuentas, organización\n- English: client, clients, account, accounts, company, companies, organization\n- Quantity phrases: cuántos empleados, how many employees, cantidad de empleados, employee count\n\nEMPLOYEE-CLIENT ASSIGNMENT KEYWORDS - These indicate employee-client relationship queries:\n- Spanish: en qué cliente, dónde trabaja, qué empresa, cuál cliente, asignado a, trabajando en\n- English: which client, where working, what company, assigned to, working at, working for\n\nPREFERENCES KEYWORDS - These indicate preference/taste queries:\n- Spanish: preferencias, gustos, favorito, favorita, prefiere, le gusta, sabor, color, talla, dulce, salado, comida, platillo, plato, alimento, alimentos, pastel, pizza, cake, torta, bizcocho, alergia, alergias, aversión, comer, come\n- English: preferences, tastes, favorite, prefers, likes, flavor, color, size, sweet, salty\n\nSIZE KEYWORDS - These indicate specific clothing size queries:\n- Spanish: talla, tallas, medida, camisa, camiseta, playera, franela, remera, blusa, chaqueta, jacket, polo, jogger, pantalón\n- English: size, sizes, shirt, t-shirt, tshirt, tee, top, jacket, polo, jogger, pants\n\nCHILDREN KEYWORDS - These indicate children/family information queries:\n- Spanish: hijos, hijas, niños, niñas, familia, bebé, hijo, hija, children, kids\n- English: children, kids, family, baby, son, daughter, child\n\nExamples of VALID requests:\n- \"¿Cuándo es el cumpleaños de Juan?\" → person_name: \"Juan\", info_type: \"birthday\"\n- \"Dame el correo de María\" → person_name: \"María\", info_type: \"email\"\n- \"Lista de trabajadores\" → person_name: \"ALL\", info_type: \"contact_list\"\n- \"Dame todas las personas de la empresa\" → person_name: \"ALL\", info_type: \"contact_list\"\n- \"Show me all employees\" → person_name: \"ALL\", info_type: \"contact_list\"\n- \"List of staff members\" → person_name: \"ALL\", info_type: \"contact_list\"\n- \"¿Quiénes trabajan aquí?\" → person_name: \"ALL\", info_type: \"contact_list\"\n- \"What's Pedro's phone number?\" → person_name: \"Pedro\", info_type: \"phone\"\n- \"What is the Preferred Cake Flavor of Pepe?\" → person_name: \"Pepe\", info_type: \"preferred_cake_flavor\"\n- \"What is the T-Shirt Size of Juan?\" → person_name: \"Juan\", info_type: \"tshirt_size\"\n- \"What is the Favorite Food of Mario?\" → person_name: \"Mario\", info_type: \"favorite_food\"\n- \"¿Cuál es la comida favorita de Ana?\" → person_name: \"Ana\", info_type: \"favorite_food\"\n- \"¿Qué talla de camisa usa Pedro?\" → person_name: \"Pedro\", info_type: \"tshirt_size\"\n- \"What's Ana's jacket size?\" → person_name: \"Ana\", info_type: \"jacket_size\"\n- \"¿Qué talla de chaqueta usa Juan?\" → person_name: \"Juan\", info_type: \"jacket_size\"\n- \"What polo size does María wear?\" → person_name: \"María\", info_type: \"polo_size\"\n- \"¿Qué talla de polo usa Carlos?\" → person_name: \"Carlos\", info_type: \"polo_size\"\n- \"What's Pedro's jogger size?\" → person_name: \"Pedro\", info_type: \"jogger_size\"\n- \"¿Qué talla de jogger usa Ana?\" → person_name: \"Ana\", info_type: \"jogger_size\"\n- \"What shirt size does Luis wear?\" → person_name: \"Luis\", info_type: \"tshirt_size\"\n- \"¿Cuál es la talla de camisa de María?\" → person_name: \"María\", info_type: \"tshirt_size\"\n- \"¿Qué talla de camiseta usa Juan?\" → person_name: \"Juan\", info_type: \"tshirt_size\"\n- \"What's Pedro's shirt size?\" → person_name: \"Pedro\", info_type: \"tshirt_size\"\n- \"¿Cuál es la talla de playera de Ana?\" → person_name: \"Ana\", info_type: \"tshirt_size\"\n- \"What tee size does Carlos wear?\" → person_name: \"Carlos\", info_type: \"tshirt_size\"\n- \"¿Qué talla de franela usa María?\" → person_name: \"María\", info_type: \"tshirt_size\"\n- \"What's Luis's t-shirt size?\" → person_name: \"Luis\", info_type: \"tshirt_size\"\n- \"What's Maria's favorite color?\" → person_name: \"Maria\", info_type: \"favorite_color\"\n- \"¿Cuándo fue contratado Luis?\" → person_name: \"Luis\", info_type: \"hire_date\"\n- \"What's John's LinkedIn profile?\" → person_name: \"John\", info_type: \"linkedin\"\n- \"¿Cuál es la nacionalidad de Carlos?\" → person_name: \"Carlos\", info_type: \"nationality\"\n- \"Dame los skills de René Cortez\" → person_name: \"René Cortez\", info_type: \"employee_skills\"\n- \"¿Qué tecnologías conoce Juan?\" → person_name: \"Juan\", info_type: \"employee_skills\"\n- \"What skills does Ana have?\" → person_name: \"Ana\", info_type: \"employee_skills\"\n- \"¿Qué lenguajes sabe Pedro?\" → person_name: \"Pedro\", info_type: \"employee_skills\"\n- \"Who has typescript skills?\" → person_name: \"ALL\", info_type: \"skill_search\", search_parameter: \"typescript\"\n- \"¿Quién sabe Python?\" → person_name: \"ALL\", info_type: \"skill_search\", search_parameter: \"Python\"\n- \"¿Quién conoce React?\" → person_name: \"ALL\", info_type: \"skill_search\", search_parameter: \"React\"\n- \"Who knows JavaScript?\" → person_name: \"ALL\", info_type: \"skill_search\", search_parameter: \"JavaScript\"\n- \"¿Alguien domina Node.js?\" → person_name: \"ALL\", info_type: \"skill_search\", search_parameter: \"Node.js\"\n- \"¿Quiénes están en scalar?\" → person_name: \"ALL\", info_type: \"client_allocation_list\", search_parameter: \"scalar\"\n- \"Who is working at scalar?\" → person_name: \"ALL\", info_type: \"client_allocation_list\", search_parameter: \"scalar\"\n- \"¿Quiénes trabajan en scalar?\" → person_name: \"ALL\", info_type: \"client_allocation_list\", search_parameter: \"scalar\"\n- \"How many employees are at scalar?\" → person_name: \"ALL\", info_type: \"client_allocation_count\", search_parameter: \"scalar\"\n- \"¿Cuántos empleados tiene scalar?\" → person_name: \"ALL\", info_type: \"client_employee_count\", search_parameter: \"scalar\"\n- \"¿Cuántos empleados hay en scalar?\" → person_name: \"ALL\", info_type: \"client_employee_count\", search_parameter: \"scalar\"\n- \"Employee count for scalar\" → person_name: \"ALL\", info_type: \"client_employee_count\", search_parameter: \"scalar\"\n- \"Lista de clientes\" → person_name: \"ALL\", info_type: \"client_list\"\n- \"¿En qué cliente está Juan Pérez?\" → person_name: \"Juan Pérez\", info_type: \"employee_client_assignment\"\n- \"Where does Ana work?\" → person_name: \"Ana\", info_type: \"employee_client_assignment\"\n- \"¿Dónde trabaja Pedro?\" → person_name: \"Pedro\", info_type: \"employee_client_assignment\"\n- \"What company is María assigned to?\" → person_name: \"María\", info_type: \"employee_client_assignment\"\n- \"¿A qué empresa está asignado Carlos?\" → person_name: \"Carlos\", info_type: \"employee_client_assignment\"\n- \"¿Cuáles son las preferencias de Juan?\" → person_name: \"Juan\", info_type: \"employee_preferences\"\n- \"What are Ana's preferences?\" → person_name: \"Ana\", info_type: \"employee_preferences\"\n- \"¿Qué le gusta a Pedro?\" → person_name: \"Pedro\", info_type: \"employee_preferences\"\n- \"¿Tiene hijos María?\" → person_name: \"María\", info_type: \"employee_children\"\n- \"Does Carlos have kids?\" → person_name: \"Carlos\", info_type: \"employee_children\"\n- \"¿Cuántos hijos tiene Ana?\" → person_name: \"Ana\", info_type: \"children_info\"\n- \"Tell me about Pedro's children\" → person_name: \"Pedro\", info_type: \"children_info\"\n- \"¿Hay alguien cumpliendo años esta semana?\" → person_name: \"ALL\", info_type: \"birthday_this_week\"\n- \"Hay alguien cumpliendo años esta semana?\" → person_name: \"ALL\", info_type: \"birthday_this_week\"\n- \"¿Alguien cumple esta semana?\" → person_name: \"ALL\", info_type: \"birthday_this_week\"\n- \"Who has a birthday this week?\" → person_name: \"ALL\", info_type: \"birthday_this_week\"\n- \"Anyone celebrating birthday this week?\" → person_name: \"ALL\", info_type: \"birthday_this_week\"\n- \"¿Quién cumple años la próxima semana?\" → person_name: \"ALL\", info_type: \"birthday_next_week\"\n- \"Any birthdays this month?\" → person_name: \"ALL\", info_type: \"birthday_this_month\"\n- \"¿Hay cumpleaños este mes?\" → person_name: \"ALL\", info_type: \"birthday_this_month\"\n- \"¿Quién cumple este mes?\" → person_name: \"ALL\", info_type: \"birthday_this_month\"\n- \"Birthdays next month?\" → person_name: \"ALL\", info_type: \"birthday_next_month\"\n\nExamples of INVALID requests (should be \"other\"):\n- \"¿Cuánto gana Juan?\" → salary (not personal)\n- \"¿Cuál es el presupuesto del proyecto?\" → budget (not personal)\n- \"¿Quiénes son nuestros clientes?\" → business info (not contacts/employees)",
+        "options": {}
       },
-      {
-        "parameters": {
-          "model": {
-            "__rl": true,
-            "value": "gpt-5-mini",
-            "mode": "list",
-            "cachedResultName": "gpt-5-mini"
-          },
-          "options": {}
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -2800,
+        -208
+      ],
+      "id": "6bba32ba-8002-401f-9928-bb927ca05e68",
+      "name": "Language & Message Classifier"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
         },
-        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-        "typeVersion": 1.2,
-        "position": [
-          -784,
-          464
-        ],
-        "id": "f7114665-5e5c-466f-a9f4-180074adccae",
-        "name": "OpenAI Chat Model",
-        "credentials": {
-          "openAiApi": {
-            "id": "k5EcjwlAKjq4YYgj",
-            "name": "OpenAi account"
-          }
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -2800,
+        64
+      ],
+      "id": "5642f0b1-6874-4cc2-a0b4-dfcc45a28b88",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "k5EcjwlAKjq4YYgj",
+          "name": "OpenAi account"
         }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the AI response and extract JSON\nconst aiOutput = $input.first().json.output;\nlet parsedResponse;\n\ntry {\n  // Extract JSON from the AI response\n  const jsonMatch = aiOutput.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    parsedResponse = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('No JSON found in response');\n  }\n} catch (error) {\n  // Fallback if parsing fails\n  parsedResponse = {\n    detected_language: 'spanish',\n    message_type: 'other',\n    requires_salesforce: false,\n    response: 'Lo siento, hubo un error procesando tu mensaje.'\n  };\n}\n\n// Add original message data\nparsedResponse.original_message = $('Slack Trigger').first().json.text;\nparsedResponse.user_id = $('Slack Trigger').first().json.user;\n\nreturn parsedResponse;"
       },
-      {
-        "parameters": {
-          "jsCode": "// Parse the AI response and extract JSON\nconst aiOutput = $input.first().json.output;\nlet parsedResponse;\n\ntry {\n  // Extract JSON from the AI response\n  const jsonMatch = aiOutput.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    parsedResponse = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('No JSON found in response');\n  }\n} catch (error) {\n  // Fallback if parsing fails\n  parsedResponse = {\n    detected_language: 'spanish',\n    message_type: 'other',\n    requires_salesforce: false,\n    response: 'Lo siento, hubo un error procesando tu mensaje.'\n  };\n}\n\n// Add original message data\nparsedResponse.original_message = $('Slack Trigger').first().json.text;\nparsedResponse.user_id = $('Slack Trigger').first().json.user;\n\nreturn parsedResponse;"
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2480,
+        -208
+      ],
+      "id": "d8321df5-1dfe-4b0a-80a0-669660d14cba",
+      "name": "Parse AI Response"
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "={{ $('Slack Trigger').item.json.user }}",
+          "mode": "id"
         },
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          -464,
-          192
-        ],
-        "id": "401d46f1-272e-4b47-b946-9c0c9c7875da",
-        "name": "Parse AI Response"
+        "text": "={{ $json.response }}",
+        "otherOptions": {}
       },
-      {
-        "parameters": {
-          "select": "user",
-          "user": {
-            "__rl": true,
-            "value": "={{ $('Slack Trigger').item.json.user }}",
-            "mode": "id"
-          },
-          "text": "={{ $json.response }}",
-          "otherOptions": {}
-        },
-        "type": "n8n-nodes-base.slack",
-        "typeVersion": 2.3,
-        "position": [
-          0,
-          400
-        ],
-        "id": "bd1fc847-d5c6-4f80-ac39-f27be863deeb",
-        "name": "Send Direct Response",
-        "webhookId": "a26f3472-0274-467a-b663-36caa06184a3",
-        "credentials": {
-          "slackApi": {
-            "id": "N2eQbu66RCaj9hiz",
-            "name": "Slack Account - API"
-          }
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -2016,
+        0
+      ],
+      "id": "02d7283a-0f29-4d3f-b4cc-751f4ac623c9",
+      "name": "Send Direct Response",
+      "webhookId": "a26f3472-0274-467a-b663-36caa06184a3",
+      "credentials": {
+        "slackApi": {
+          "id": "N2eQbu66RCaj9hiz",
+          "name": "Slack Account - API"
         }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Based on the personal information request, generate a SOQL query to search Salesforce for employee/staff personal data on Salesforce Contacts.\n\nRequest details:\n- Person: {{ $('Parse AI Response').item.json.person_name }}\n- Info type: {{ $('Parse AI Response').item.json.info_type }}\n- Search parameter: {{ $('Parse AI Response').item.json.search_parameter }}\n- Language: {{ $('Parse AI Response').item.json.detected_language }}\n- Original message: {{ $('Parse AI Response').item.json.original_message }}\n\nGenerate a SOQL query based on the info_type. This can query Contact, Skill__c, or Allocation__c objects. Map info_type to these EXACT field names and objects:\n\nSTANDARD FIELDS (ONLY use these basic fields):\n- birthday → Birthdate\n- birthday_this_week → Birthdate (with THIS_WEEK filter)\n- birthday_next_week → Birthdate (with NEXT_WEEK filter)\n- birthday_this_month → Birthdate (with THIS_MONTH filter)\n- birthday_next_month → Birthdate (with NEXT_N_DAYS:60 filter)\n- full_name → Name\n- phone → Phone\n- email → Email\n- title → Title\n- mobile → MobilePhone\n- home_phone → HomePhone\n- department → Department\n- ANY OTHER info_type → Use Name, Email, Phone only\n\nCUSTOM FIELDS (use exact API names from Contact object):\n- preferred_cake_flavor → Preferred_Cake_Flavor__c\n- preferred_pizza_flavor → Preferred_Pizza_Flavor__c\n- favorite_color → Favorite_color__c\n- favorite_food → Favorite_Food__c\n- allergies → Allergies_or_food_aversions__c\n- sweet_or_salty → Sweet_or_salty\n- tshirt_size → T_Shirt_Size__c\n- jacket_size → Jacket_Size__c\n- polo_size → Polo_Size__c\n- jogger_size → Jogger_Size__c\n- personality_type → Personality_Type__c\n- area → Area__c\n- unit → Unit__c\n- nationality → Nationality__c\n- national_id → National_ID__c\n- marital_status → Marital_Status__c\n- gender → Gender__c\n- pronouns → Pronouns__c\n- country → MailingCountry\n- city → MailingCity\n- home_address → MailingStreet\n- zip → MailingPostalCode\n- linkedin → LinkedIn__c\n- facebook → Facebook__c\n- twitter → Twitter__c\n- contact_list → Name, Email, Phone, Title (for lists of all contacts)\n- personal_email → Personal_Email__c\n- hire_date → Hire_Date__c\n- employment_status → Employment_Status__c\n\nSKILL QUERIES (Skill__c object):\n- employee_skills → Query Skill__c for specific person's skills\n- skill_search → Query Skill__c to find people with specific skill\n\nALLOCATION QUERIES (Allocation__c object):\n- client_allocation_list → Query Allocation__c for people at specific client\n- client_allocation_count → Query Allocation__c to count people at specific client\n\nACCOUNT QUERIES (Account object):\n- client_employee_count → Query Account for NumberOfEmployees field\n- client_list → Query Account for list of all clients\n\nEMPLOYEE-CLIENT ASSIGNMENT QUERIES (Allocation__c object):\n- employee_client_assignment → Query Allocation__c to find which client(s) a specific employee is assigned to\n- employee_client_info → Query Allocation__c for detailed information about employee's client assignment\n\nPREFERENCES QUERIES (Contact object):\n- employee_preferences → Query Contact for all preference fields (cake, pizza, color, food, allergies, sweet/salty, sizes)\n\nCHILDREN QUERIES (Child_Information__c object):\n- employee_children → Query Child_Information__c to check if employee has children\n- children_info → Query Child_Information__c for detailed children information\n\nCRITICAL RULES:\n1. NEVER use fields with npe01__ prefix - they do not exist\n2. Use these EXACT field names and relationships as they appear in Salesforce\n3. For unknown info_types, use ONLY: Name, Email, Phone\n\nRELATIONSHIP FIELDS:\n- In Skill__c: Employee__c (lookup/master-detail field - Contact Id), Employee__r (relationship notation to access Contact fields), Skill__c (Picklist), Profiency__c (Custom Picklist), Soft_Skill__c (Picklist), Technical_Skill__c (Picklist)\n- In Allocation__c: Employee__c (Master-Detail to Contact), Employee__r (relationship notation to access Contact fields), Client__c (Lookup to Account), Client__r (relationship notation to access Account fields)\n- In Account: Name (Account Name), NumberOfEmployees (Standard field for employee count)\n- In Child_Information__c: Parent__c (Master-Detail to Contact), Parent__r (relationship notation to access Contact fields), Child_s_Name__c, Date_of_Birth__c, Age__c\n\nQuery Rules:\nFOR CONTACT QUERIES:\n- If person_name is ALL or info_type is contact_list: Create a query to get all contacts with basic info\n- If person_name is a specific name: Use LIKE '%name%' in WHERE clause. For names with accents, use OR conditions for both accented and non-accented versions\n- For lists, limit to 50 records and order by Name\n\nFOR SKILL QUERIES:\n- employee_skills: SELECT Employee__r.Name, Skill__c, Profiency__c, Soft_Skill__c, Technical_Skill__c FROM Skill__c WHERE Employee__r.Name LIKE '%person_name%'\n- skill_search: SELECT Employee__r.Name, Skill__c, Profiency__c, Soft_Skill__c, Technical_Skill__c FROM Skill__c WHERE Skill__c LIKE '%search_parameter%' OR Soft_Skill__c LIKE '%search_parameter%' OR Technical_Skill__c LIKE '%search_parameter%'\n\nFOR ALLOCATION QUERIES:\n- client_allocation_list: SELECT Employee__r.Name, Client__r.Name FROM Allocation__c WHERE Client__r.Name LIKE '%search_parameter%'\n- client_allocation_count: SELECT COUNT(Id) FROM Allocation__c WHERE Client__r.Name LIKE '%search_parameter%'\n\nFOR ACCOUNT QUERIES:\n- client_employee_count: SELECT Name, NumberOfEmployees FROM Account WHERE Name LIKE '%search_parameter%'\n- client_list: SELECT Name, NumberOfEmployees FROM Account ORDER BY Name LIMIT 50\n\nFOR EMPLOYEE-CLIENT ASSIGNMENT QUERIES:\n- employee_client_assignment: SELECT Employee__r.Name, Client__r.Name FROM Allocation__c WHERE Employee__r.Name LIKE '%person_name%'\n- employee_client_info: SELECT Employee__r.Name, Employee__r.Title, Client__r.Name FROM Allocation__c WHERE Employee__r.Name LIKE '%person_name%'\n\nFOR PREFERENCES QUERIES:\n- employee_preferences: SELECT Name, Preferred_Cake_Flavor__c, Preferred_Pizza_Flavor__c, Favorite_color__c, Favorite_Food__c, Allergies_or_food_aversions__c, Sweet_or_salty, T_Shirt_Size__c, Jacket_Size__c, Polo_Size__c, Jogger_Size__c FROM Contact WHERE Name LIKE '%person_name%'\n\nFOR CHILDREN QUERIES:\n- employee_children: SELECT COUNT(Id) FROM Child_Information__c WHERE Parent__r.Name LIKE '%person_name%'\n- children_info: SELECT Parent__r.Name, Child_s_Name__c, Date_of_Birth__c, Age__c FROM Child_Information__c WHERE Parent__r.Name LIKE '%person_name%'\n\nExamples:\n- person_name: Juan Perez, info_type: birthday → SELECT Name, Birthdate FROM Contact WHERE Name LIKE '%Juan%' AND Name LIKE '%Perez%'\n- person_name: Pedro, info_type: email → SELECT Name, Email FROM Contact WHERE Name LIKE '%Pedro%'\n- person_name: ALL, info_type: contact_list → SELECT Name, Email, Phone, Title FROM Contact ORDER BY Name LIMIT 50\n- person_name: Ana, info_type: phone → SELECT Name, Phone FROM Contact WHERE Name LIKE '%Ana%'\n- person_name: Ana, info_type: mobile → SELECT Name, MobilePhone FROM Contact WHERE Name LIKE '%Ana%'\n- person_name: Pepe, info_type: preferred_cake_flavor → SELECT Name, Preferred_Cake_Flavor__c FROM Contact WHERE Name LIKE '%Pepe%'\n- person_name: Juan, info_type: tshirt_size → SELECT Name, T_Shirt_Size__c FROM Contact WHERE Name LIKE '%Juan%'\n- person_name: Ana, info_type: jacket_size → SELECT Name, Jacket_Size__c FROM Contact WHERE Name LIKE '%Ana%'\n- person_name: María, info_type: polo_size → SELECT Name, Polo_Size__c FROM Contact WHERE Name LIKE '%María%'\n- person_name: Pedro, info_type: jogger_size → SELECT Name, Jogger_Size__c FROM Contact WHERE Name LIKE '%Pedro%'\n- person_name: Mario, info_type: favorite_food → SELECT Name, Favorite_Food__c FROM Contact WHERE Name LIKE '%Mario%'\n- person_name: Maria, info_type: favorite_color → SELECT Name, Favorite_color__c FROM Contact WHERE Name LIKE '%Maria%'\n- person_name: Carlos, info_type: nationality → SELECT Name, Nationality__c FROM Contact WHERE Name LIKE '%Carlos%'\n- person_name: Rene Cortez, info_type: employee_skills → SELECT Employee__r.Name, Skill__c, Profiency__c, Soft_Skill__c, Technical_Skill__c FROM Skill__c WHERE Employee__r.Name LIKE '%Rene Cortez%'\n- person_name: ALL, info_type: skill_search, search_parameter: typescript → SELECT Employee__r.Name, Skill__c, Profiency__c, Soft_Skill__c, Technical_Skill__c FROM Skill__c WHERE Skill__c LIKE '%typescript%' OR Soft_Skill__c LIKE '%typescript%' OR Technical_Skill__c LIKE '%typescript%'\n- person_name: ALL, info_type: client_allocation_list, search_parameter: scalar → SELECT Employee__r.Name, Client__r.Name FROM Allocation__c WHERE Client__r.Name LIKE '%scalar%'\n- person_name: ALL, info_type: client_allocation_count, search_parameter: scalar → SELECT COUNT(Id) FROM Allocation__c WHERE Client__r.Name LIKE '%scalar%'\n- person_name: ALL, info_type: birthday_this_week → SELECT Name, Birthdate FROM Contact WHERE Birthdate = THIS_WEEK AND Birthdate != null ORDER BY Birthdate\n- person_name: ALL, info_type: birthday_next_week → SELECT Name, Birthdate FROM Contact WHERE Birthdate = NEXT_WEEK AND Birthdate != null ORDER BY Birthdate\n- person_name: ALL, info_type: birthday_this_month → SELECT Name, Birthdate FROM Contact WHERE Birthdate = THIS_MONTH AND Birthdate != null ORDER BY Birthdate\n- person_name: ALL, info_type: birthday_next_month → SELECT Name, Birthdate FROM Contact WHERE Birthdate = NEXT_N_DAYS:60 AND Birthdate != null ORDER BY Birthdate\n- person_name: ALL, info_type: client_employee_count, search_parameter: scalar → SELECT Name, NumberOfEmployees FROM Account WHERE Name LIKE '%scalar%'\n- person_name: ALL, info_type: client_list → SELECT Name, NumberOfEmployees FROM Account ORDER BY Name LIMIT 50\n- person_name: Juan Perez, info_type: employee_client_assignment → SELECT Employee__r.Name, Client__r.Name FROM Allocation__c WHERE Employee__r.Name LIKE '%Juan Perez%'\n- person_name: Ana, info_type: employee_client_assignment → SELECT Employee__r.Name, Client__r.Name FROM Allocation__c WHERE Employee__r.Name LIKE '%Ana%'\n- person_name: Pedro, info_type: employee_client_info → SELECT Employee__r.Name, Employee__r.Title, Client__r.Name FROM Allocation__c WHERE Employee__r.Name LIKE '%Pedro%'\n- person_name: Juan, info_type: employee_preferences → SELECT Name, Preferred_Cake_Flavor__c, Preferred_Pizza_Flavor__c, Favorite_color__c, Favorite_Food__c, Allergies_or_food_aversions__c, Sweet_or_salty, T_Shirt_Size__c, Jacket_Size__c, Polo_Size__c, Jogger_Size__c FROM Contact WHERE Name LIKE '%Juan%'\n- person_name: Ana, info_type: employee_children → SELECT COUNT(Id) FROM Child_Information__c WHERE Parent__r.Name LIKE '%Ana%'\n- person_name: Pedro, info_type: children_info → SELECT Parent__r.Name, Child_s_Name__c, Date_of_Birth__c, Age__c FROM Child_Information__c WHERE Parent__r.Name LIKE '%Pedro%'\n\nRespond only with the SOQL query, nothing else.",
+        "options": {}
       },
-      {
-        "parameters": {
-          "promptType": "define",
-          "text": "=Based on the personal information request, generate a SOQL query to search Salesforce for employee/staff personal data on Salesforce Contacts.\n\nRequest details:\n- Person: {{ $('Parse AI Response').item.json.person_name }}\n- Info type: {{ $('Parse AI Response').item.json.info_type }}\n- Search parameter: {{ $('Parse AI Response').item.json.search_parameter }}\n- Language: {{ $('Parse AI Response').item.json.detected_language }}\n- Original message: {{ $('Parse AI Response').item.json.original_message }}\n\nGenerate a SOQL query based on the info_type. This can query Contact, Skill__c, or Allocation__c objects. Map info_type to these EXACT field names and objects:\n\nSTANDARD FIELDS (ONLY use these basic fields):\n- birthday → Birthdate\n- birthday_this_week → Birthdate (with THIS_WEEK filter)\n- birthday_next_week → Birthdate (with NEXT_WEEK filter)\n- birthday_this_month → Birthdate (with THIS_MONTH filter)\n- birthday_next_month → Birthdate (with NEXT_N_DAYS:60 filter)\n- full_name → Name\n- phone → Phone\n- email → Email\n- title → Title\n- mobile → MobilePhone\n- home_phone → HomePhone\n- department → Department\n- ANY OTHER info_type → Use Name, Email, Phone only\n\nCUSTOM FIELDS (use exact API names from Contact object):\n- preferred_cake_flavor → Preferred_Cake_Flavor__c\n- preferred_pizza_flavor → Preferred_Pizza_Flavor__c\n- favorite_color → Favorite_color__c\n- favorite_food → Favorite_Food__c\n- allergies → Allergies_or_food_aversions\n- sweet_or_salty → Sweet_or_salty\n- tshirt_size → T_Shirt_Size__c\n- jacket_size → Jacket_Size__c\n- polo_size → Polo_Size__c\n- jogger_size → Jogger_Size__c\n- personality_type → Personality_Type__c\n- area → Area__c\n- unit → Unit__c\n- nationality → Nationality__c\n- national_id → National_ID__c\n- marital_status → Marital_Status__c\n- gender → Gender__c\n- pronouns → Pronouns__c\n- country → MailingCountry\n- city → MailingCity\n- home_address → MailingStreet\n- zip → MailingPostalCode\n- linkedin → LinkedIn__c\n- facebook → Facebook__c\n- twitter → Twitter__c\n- contact_list → Name, Email, Phone, Title (for lists of all contacts)\n- personal_email → Personal_Email__c\n- hire_date → Hire_Date__c\n- employment_status → Employment_Status__c\n\nSKILL QUERIES (Skill__c object):\n- employee_skills → Query Skill__c for specific person's skills\n- skill_search → Query Skill__c to find people with specific skill\n\nALLOCATION QUERIES (Allocation__c object):\n- client_allocation_list → Query Allocation__c for people at specific client\n- client_allocation_count → Query Allocation__c to count people at specific client\n\nACCOUNT QUERIES (Account object):\n- client_employee_count → Query Account for NumberOfEmployees field\n- client_list → Query Account for list of all clients\n\nEMPLOYEE-CLIENT ASSIGNMENT QUERIES (Allocation__c object):\n- employee_client_assignment → Query Allocation__c to find which client(s) a specific employee is assigned to\n- employee_client_info → Query Allocation__c for detailed information about employee's client assignment\n\nPREFERENCES QUERIES (Contact object):\n- employee_preferences → Query Contact for all preference fields (cake, pizza, color, food, allergies, sweet/salty, sizes)\n\nCHILDREN QUERIES (Child_Information__c object):\n- employee_children → Query Child_Information__c to check if employee has children\n- children_info → Query Child_Information__c for detailed children information\n\nCRITICAL RULES:\n1. NEVER use fields with npe01__ prefix - they do not exist\n2. Use these EXACT field names and relationships as they appear in Salesforce\n3. For unknown info_types, use ONLY: Name, Email, Phone\n\nRELATIONSHIP FIELDS:\n- In Skill__c: Employee__c (lookup/master-detail field - Contact Id), Employee__r (relationship notation to access Contact fields), Skill__c (Picklist), Profiency__c (Custom Picklist), Soft_Skill__c (Picklist), Technical_Skill__c (Picklist)\n- In Allocation__c: Employee__c (Master-Detail to Contact), Employee__r (relationship notation to access Contact fields), Client__c (Lookup to Account), Client__r (relationship notation to access Account fields)\n- In Account: Name (Account Name), NumberOfEmployees (Standard field for employee count)\n- In Child_Information__c: Parent__c (Master-Detail to Contact), Parent__r (relationship notation to access Contact fields), Child_s_Name__c, Date_of_Birth__c, Age__c\n\nQuery Rules:\nFOR CONTACT QUERIES:\n- If person_name is ALL or info_type is contact_list: Create a query to get all contacts with basic info\n- If person_name is a specific name: Use LIKE '%name%' in WHERE clause. For names with accents, use OR conditions for both accented and non-accented versions\n- For lists, limit to 50 records and order by Name\n\nFOR SKILL QUERIES:\n- employee_skills: SELECT Employee__r.Name, Skill__c, Profiency__c, Soft_Skill__c, Technical_Skill__c FROM Skill__c WHERE Employee__r.Name LIKE '%person_name%'\n- skill_search: SELECT Employee__r.Name, Skill__c, Profiency__c, Soft_Skill__c, Technical_Skill__c FROM Skill__c WHERE Skill__c LIKE '%search_parameter%' OR Soft_Skill__c LIKE '%search_parameter%' OR Technical_Skill__c LIKE '%search_parameter%'\n\nFOR ALLOCATION QUERIES:\n- client_allocation_list: SELECT Employee__r.Name, Client__r.Name FROM Allocation__c WHERE Client__r.Name LIKE '%search_parameter%'\n- client_allocation_count: SELECT COUNT(Id) FROM Allocation__c WHERE Client__r.Name LIKE '%search_parameter%'\n\nFOR ACCOUNT QUERIES:\n- client_employee_count: SELECT Name, NumberOfEmployees FROM Account WHERE Name LIKE '%search_parameter%'\n- client_list: SELECT Name, NumberOfEmployees FROM Account ORDER BY Name LIMIT 50\n\nFOR EMPLOYEE-CLIENT ASSIGNMENT QUERIES:\n- employee_client_assignment: SELECT Employee__r.Name, Client__r.Name FROM Allocation__c WHERE Employee__r.Name LIKE '%person_name%'\n- employee_client_info: SELECT Employee__r.Name, Employee__r.Title, Client__r.Name FROM Allocation__c WHERE Employee__r.Name LIKE '%person_name%'\n\nFOR PREFERENCES QUERIES:\n- employee_preferences: SELECT Name, Preferred_Cake_Flavor__c, Preferred_Pizza_Flavor__c, Favorite_color__c, Favorite_Food__c, Allergies_or_food_aversions, Sweet_or_salty, T_Shirt_Size__c, Jacket_Size__c, Polo_Size__c, Jogger_Size__c FROM Contact WHERE Name LIKE '%person_name%'\n\nFOR CHILDREN QUERIES:\n- employee_children: SELECT COUNT(Id) FROM Child_Information__c WHERE Parent__r.Name LIKE '%person_name%'\n- children_info: SELECT Parent__r.Name, Child_s_Name__c, Date_of_Birth__c, Age__c FROM Child_Information__c WHERE Parent__r.Name LIKE '%person_name%'\n\nExamples:\n- person_name: Juan Perez, info_type: birthday → SELECT Name, Birthdate FROM Contact WHERE Name LIKE '%Juan%' AND Name LIKE '%Perez%'\n- person_name: Pedro, info_type: email → SELECT Name, Email FROM Contact WHERE Name LIKE '%Pedro%'\n- person_name: ALL, info_type: contact_list → SELECT Name, Email, Phone, Title FROM Contact ORDER BY Name LIMIT 50\n- person_name: Ana, info_type: phone → SELECT Name, Phone FROM Contact WHERE Name LIKE '%Ana%'\n- person_name: Ana, info_type: mobile → SELECT Name, MobilePhone FROM Contact WHERE Name LIKE '%Ana%'\n- person_name: Pepe, info_type: preferred_cake_flavor → SELECT Name, Preferred_Cake_Flavor__c FROM Contact WHERE Name LIKE '%Pepe%'\n- person_name: Juan, info_type: tshirt_size → SELECT Name, T_Shirt_Size__c FROM Contact WHERE Name LIKE '%Juan%'\n- person_name: Ana, info_type: jacket_size → SELECT Name, Jacket_Size__c FROM Contact WHERE Name LIKE '%Ana%'\n- person_name: María, info_type: polo_size → SELECT Name, Polo_Size__c FROM Contact WHERE Name LIKE '%María%'\n- person_name: Pedro, info_type: jogger_size → SELECT Name, Jogger_Size__c FROM Contact WHERE Name LIKE '%Pedro%'\n- person_name: Mario, info_type: favorite_food → SELECT Name, Favorite_Food__c FROM Contact WHERE Name LIKE '%Mario%'\n- person_name: Maria, info_type: favorite_color → SELECT Name, Favorite_color__c FROM Contact WHERE Name LIKE '%Maria%'\n- person_name: Carlos, info_type: nationality → SELECT Name, Nationality__c FROM Contact WHERE Name LIKE '%Carlos%'\n- person_name: Rene Cortez, info_type: employee_skills → SELECT Employee__r.Name, Skill__c, Profiency__c, Soft_Skill__c, Technical_Skill__c FROM Skill__c WHERE Employee__r.Name LIKE '%Rene Cortez%'\n- person_name: ALL, info_type: skill_search, search_parameter: typescript → SELECT Employee__r.Name, Skill__c, Profiency__c, Soft_Skill__c, Technical_Skill__c FROM Skill__c WHERE Skill__c LIKE '%typescript%' OR Soft_Skill__c LIKE '%typescript%' OR Technical_Skill__c LIKE '%typescript%'\n- person_name: ALL, info_type: client_allocation_list, search_parameter: scalar → SELECT Employee__r.Name, Client__r.Name FROM Allocation__c WHERE Client__r.Name LIKE '%scalar%'\n- person_name: ALL, info_type: client_allocation_count, search_parameter: scalar → SELECT COUNT(Id) FROM Allocation__c WHERE Client__r.Name LIKE '%scalar%'\n- person_name: ALL, info_type: birthday_this_week → SELECT Name, Birthdate FROM Contact WHERE Birthdate = THIS_WEEK AND Birthdate != null ORDER BY Birthdate\n- person_name: ALL, info_type: birthday_next_week → SELECT Name, Birthdate FROM Contact WHERE Birthdate = NEXT_WEEK AND Birthdate != null ORDER BY Birthdate\n- person_name: ALL, info_type: birthday_this_month → SELECT Name, Birthdate FROM Contact WHERE Birthdate = THIS_MONTH AND Birthdate != null ORDER BY Birthdate\n- person_name: ALL, info_type: birthday_next_month → SELECT Name, Birthdate FROM Contact WHERE Birthdate = NEXT_N_DAYS:60 AND Birthdate != null ORDER BY Birthdate\n- person_name: ALL, info_type: client_employee_count, search_parameter: scalar → SELECT Name, NumberOfEmployees FROM Account WHERE Name LIKE '%scalar%'\n- person_name: ALL, info_type: client_list → SELECT Name, NumberOfEmployees FROM Account ORDER BY Name LIMIT 50\n- person_name: Juan Perez, info_type: employee_client_assignment → SELECT Employee__r.Name, Client__r.Name FROM Allocation__c WHERE Employee__r.Name LIKE '%Juan Perez%'\n- person_name: Ana, info_type: employee_client_assignment → SELECT Employee__r.Name, Client__r.Name FROM Allocation__c WHERE Employee__r.Name LIKE '%Ana%'\n- person_name: Pedro, info_type: employee_client_info → SELECT Employee__r.Name, Employee__r.Title, Client__r.Name FROM Allocation__c WHERE Employee__r.Name LIKE '%Pedro%'\n- person_name: Juan, info_type: employee_preferences → SELECT Name, Preferred_Cake_Flavor__c, Preferred_Pizza_Flavor__c, Favorite_color__c, Favorite_Food__c, Allergies_or_food_aversions, Sweet_or_salty, T_Shirt_Size__c, Jacket_Size__c, Polo_Size__c, Jogger_Size__c FROM Contact WHERE Name LIKE '%Juan%'\n- person_name: Ana, info_type: employee_children → SELECT COUNT(Id) FROM Child_Information__c WHERE Parent__r.Name LIKE '%Ana%'\n- person_name: Pedro, info_type: children_info → SELECT Parent__r.Name, Child_s_Name__c, Date_of_Birth__c, Age__c FROM Child_Information__c WHERE Parent__r.Name LIKE '%Pedro%'\n\nRespond only with the SOQL query, nothing else.",
-          "options": {}
-        },
-        "type": "@n8n/n8n-nodes-langchain.agent",
-        "typeVersion": 2.2,
-        "position": [
-          320,
-          0
-        ],
-        "id": "fabd2b2c-0102-4ad4-b9b3-a28471badbe7",
-        "name": "Generate Personal Info Query"
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -1696,
+        -400
+      ],
+      "id": "a31989ba-005a-4f86-812c-18fa9dc1fbb9",
+      "name": "Generate Personal Info Query"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are Mila, a friendly assistant. Based on the personal information query results, provide a natural, conversational response.\n\nOriginal question: \"{{ $('Parse AI Response').first().json.original_message }}\"\nPerson asked about: {{ $('Parse AI Response').first().json.person_name }}\nInfo type requested: {{ $('Parse AI Response').first().json.info_type }}\nLanguage: {{ $('Parse AI Response').first().json.detected_language }}\n\nSalesforce results: {{ JSON.stringify($json) }}\n\nInstructions:\n- Respond in {{ $('Parse AI Response').first().json.detected_language }}\n- If no results: politely say you couldn't find that person or information\n- If results found: present the information naturally and conversationally\n- Don't mention \"Salesforce\", \"database\", or technical terms\n- Sound human and friendly, not robotic\n- For personal info like birthdays, be warm and personal\n- For skills/languages, be informative but casual\n- Keep it concise and direct\n- DO NOT ask follow-up questions or offer additional help\n- DO NOT suggest continuing the conversation\n- Just provide the requested information and end the response\n- If the specific information requested (like skills, languages, age, children) is not available in the results, politely explain that this information is not available in the system\n- For Employee Skills: Present skills with proficiency levels in a clean format\n- For Skill Search: Show employees who have the requested skill with their proficiency levels\n- For Client Allocation List: Show employees allocated to the specified client\n- For Client Allocation Count: Show the total number of employees at the specified client\n- For contact lists: Present the information in a clean, organized format\n- For lists with many results: Show the first several and mention the total count\n\nExamples:\n- Birthday: \"¡Juan cumple años el 15 de marzo! 🎂\"\n- Email: \"El correo de José Luis es josem@nicasource.com.\"\n- Phone: \"El teléfono de María es +505 8888-9999.\"\n- Preferred Cake Flavor: \"A Pepe le gusta el pastel de chocolate.\" / \"Pepe's preferred cake flavor is chocolate.\"\n- T-Shirt Size: \"Juan usa talla L.\" / \"Juan's t-shirt size is L.\"\n- Favorite Food: \"La comida favorita de Mario es pizza.\" / \"Mario's favorite food is pizza.\"\n- Favorite Color: \"El color favorito de Ana es azul.\" / \"Ana's favorite color is blue.\"\n- Nationality: \"Carlos es de Nicaragua.\" / \"Carlos is from Nicaragua.\"\n- Hire Date: \"Luis fue contratado el 15 de enero de 2022.\" / \"Luis was hired on January 15, 2022.\"\n- LinkedIn: \"El LinkedIn de Pedro es linkedin.com/in/pedro-lopez.\" / \"Pedro's LinkedIn is linkedin.com/in/pedro-lopez.\"\n- Allergies: \"María es alérgica a los mariscos.\" / \"María is allergic to seafood.\"\n- Jacket Size: \"La talla de chaqueta de Juan es M.\" / \"Juan's jacket size is M.\"\n- Department: \"Ana trabaja en Desarrollo.\" / \"Ana works in Development.\"\n- Contact list (Spanish): \"Aquí está la lista de trabajadores:\\n\\n👥 **Equipo:**\\n• Ana García - ana@company.com - Desarrolladora\\n• Juan Pérez - juan@company.com - Gerente\\n• María López - maria@company.com - Diseñadora\\n\\n(Mostrando 3 de 15 contactos)\"\n- Contact list (English): \"Here's the staff list:\\n\\n👥 **Team:**\\n• Ana García - ana@company.com - Developer\\n• Juan Pérez - juan@company.com - Manager\\n• María López - maria@company.com - Designer\\n\\n(Showing 3 of 15 contacts)\"\n- Employee Skills (Spanish): \"Skills de René Cortez:\\n\\n🛠️ **Habilidades:**\\n• JavaScript (Avanzado)\\n• React (Intermedio)\\n• Node.js (Básico)\"\n- Employee Skills (English): \"René Cortez's skills:\\n\\n🛠️ **Skills:**\\n• JavaScript (Advanced)\\n• React (Intermediate)\\n• Node.js (Basic)\"\n- Skill Search (Spanish): \"Desarrolladores con TypeScript:\\n\\n👨‍💻 **Equipo:**\\n• Juan Pérez (Avanzado)\\n• Ana García (Intermedio)\\n• Carlos López (Básico)\"\n- Skill Search (English): \"Developers with TypeScript:\\n\\n👨‍💻 **Team:**\\n• Juan Pérez (Advanced)\\n• Ana García (Intermediate)\\n• Carlos López (Basic)\"\n- Client Allocation List (Spanish): \"Empleados en Scalar:\\n\\n🏢 **Equipo en Scalar:**\\n• René Cortez\\n• Ana García\\n• Pedro López\"\n- Client Allocation List (English): \"Employees at Scalar:\\n\\n🏢 **Scalar Team:**\\n• René Cortez\\n• Ana García\\n• Pedro López\"\n- Client Allocation Count (Spanish): \"Scalar tiene 15 empleados asignados.\"\n- Client Allocation Count (English): \"Scalar has 15 employees assigned.\"\n- Client Employee Count (Spanish): \"Scalar tiene 25 empleados registrados.\"\n- Client Employee Count (English): \"Scalar has 25 employees on record.\"\n- Client List (Spanish): \"Lista de clientes:\\n\\n🏢 **Clientes:**\\n• Scalar - 25 empleados\\n• TechCorp - 15 empleados\\n• DevInc - 8 empleados\\n\\n(Mostrando 3 de 10 clientes)\"\n- Client List (English): \"Client list:\\n\\n🏢 **Clients:**\\n• Scalar - 25 employees\\n• TechCorp - 15 employees\\n• DevInc - 8 employees\\n\\n(Showing 3 of 10 clients)\"\n- Employee Client Assignment (Spanish): \"Juan Pérez está asignado a Scalar.\"\n- Employee Client Assignment (English): \"Juan Pérez is assigned to Scalar.\"\n- Employee Client Info (Spanish): \"Pedro López (Desarrollador Senior) está trabajando en TechCorp.\"\n- Employee Client Info (English): \"Pedro López (Senior Developer) is working at TechCorp.\"\n- Multiple Client Assignment (Spanish): \"Ana García está asignada a:\\n\\n🏢 **Clientes:**\\n• Scalar\\n• TechCorp\"\n- Multiple Client Assignment (English): \"Ana García is assigned to:\\n\\n🏢 **Clients:**\\n• Scalar\\n• TechCorp\"\n- Employee Preferences (Spanish): \"Preferencias de Juan:\\n\\n🍰 **Gustos:**\\n• Pastel favorito: Chocolate\\n• Pizza favorita: Hawaiana\\n• Color favorito: Gris\\n• Comida favorita: Sopa de Frijoles\\n• Alergias: Huevos\\n• Prefiere: Dulce\\n\\n👕 **Tallas:**\\n• Camisa: M\\n• Chaqueta: XS\\n• Polo: M\\n• Jogger: L\"\n- Employee Preferences (English): \"Juan's preferences:\\n\\n🍰 **Tastes:**\\n• Favorite cake: Chocolate\\n• Favorite pizza: Hawaiian\\n• Favorite color: Gray\\n• Favorite food: Bean Soup\\n• Allergies: Eggs\\n• Prefers: Sweet\\n\\n👕 **Sizes:**\\n• T-Shirt: M\\n• Jacket: XS\\n• Polo: M\\n• Jogger: L\"\n- Employee Children Count (Spanish): \"Ana tiene 2 hijos.\"\n- Employee Children Count (English): \"Ana has 2 children.\"\n- Children Information (Spanish): \"Hijos de Pedro:\\n\\n👶 **Familia:**\\n• Mateo Cortez - 9/7/2024 (0 años)\\n• Sofia López - 15/3/2020 (4 años)\"\n- Children Information (English): \"Pedro's children:\\n\\n👶 **Family:**\\n• Mateo Cortez - 9/7/2024 (0 years old)\\n• Sofia López - 15/3/2020 (4 years old)\"\n- No Children (Spanish): \"No tiene hijos registrados.\"\n- No Children (English): \"No children on record.\"\n- Birthday This Week (Spanish): \"Cumpleaños esta semana:\\n\\n🎂 **¡Celebremos!**\\n• Ana García - 15 de marzo\\n• Pedro López - 18 de marzo\"\n- Birthday This Week (English): \"Birthdays this week:\\n\\n🎂 **Let's celebrate!**\\n• Ana García - March 15th\\n• Pedro López - March 18th\"\n- Birthday Next Week (Spanish): \"Cumpleaños la próxima semana:\\n\\n🎉 **¡Próximos cumpleaños!**\\n• Juan Pérez - 22 de marzo\\n• María González - 25 de marzo\"\n- Birthday Next Week (English): \"Birthdays next week:\\n\\n🎉 **Upcoming birthdays!**\\n• Juan Pérez - March 22nd\\n• María González - March 25th\"\n- Birthday This Month (Spanish): \"Cumpleaños este mes:\\n\\n🗓️ **Marzo:**\\n• Ana García - 15 de marzo\\n• Pedro López - 18 de marzo\\n• Juan Pérez - 22 de marzo\\n\\n(Mostrando 3 de 5 cumpleaños)\"\n- Birthday This Month (English): \"Birthdays this month:\\n\\n🗓️ **March:**\\n• Ana García - March 15th\\n• Pedro López - March 18th\\n• Juan Pérez - March 22nd\\n\\n(Showing 3 of 5 birthdays)\"\n- No birthdays found (Spanish): \"No hay cumpleaños programados para este período.\"\n- No birthdays found (English): \"No birthdays scheduled for this period.\"\n- If info not available: \"Lo siento, esa información no está disponible en el sistema.\" / \"Sorry, that information is not available in the system.\"\n- If person not found: \"No pude encontrar información sobre esa persona en el sistema.\" / \"I couldn't find information about that person in the system.\"",
+        "options": {}
       },
-      {
-        "parameters": {
-          "promptType": "define",
-          "text": "=You are Mila, a friendly assistant. Based on the personal information query results, provide a natural, conversational response.\n\nOriginal question: \"{{ $('Parse AI Response').first().json.original_message }}\"\nPerson asked about: {{ $('Parse AI Response').first().json.person_name }}\nInfo type requested: {{ $('Parse AI Response').first().json.info_type }}\nLanguage: {{ $('Parse AI Response').first().json.detected_language }}\n\nSalesforce results: {{ JSON.stringify($json) }}\n\nInstructions:\n- Respond in {{ $('Parse AI Response').first().json.detected_language }}\n- If no results: politely say you couldn't find that person or information\n- If results found: present the information naturally and conversationally\n- Don't mention \"Salesforce\", \"database\", or technical terms\n- Sound human and friendly, not robotic\n- For personal info like birthdays, be warm and personal\n- For skills/languages, be informative but casual\n- Keep it concise and direct\n- DO NOT ask follow-up questions or offer additional help\n- DO NOT suggest continuing the conversation\n- Just provide the requested information and end the response\n- If the specific information requested (like skills, languages, age, children) is not available in the results, politely explain that this information is not available in the system\n- For Employee Skills: Present skills with proficiency levels in a clean format\n- For Skill Search: Show employees who have the requested skill with their proficiency levels\n- For Client Allocation List: Show employees allocated to the specified client\n- For Client Allocation Count: Show the total number of employees at the specified client\n- For contact lists: Present the information in a clean, organized format\n- For lists with many results: Show the first several and mention the total count\n\nExamples:\n- Birthday: \"¡Juan cumple años el 15 de marzo! 🎂\"\n- Email: \"El correo de José Luis es josem@nicasource.com.\"\n- Phone: \"El teléfono de María es +505 8888-9999.\"\n- Preferred Cake Flavor: \"A Pepe le gusta el pastel de chocolate.\" / \"Pepe's preferred cake flavor is chocolate.\"\n- T-Shirt Size: \"Juan usa talla L.\" / \"Juan's t-shirt size is L.\"\n- Favorite Food: \"La comida favorita de Mario es pizza.\" / \"Mario's favorite food is pizza.\"\n- Favorite Color: \"El color favorito de Ana es azul.\" / \"Ana's favorite color is blue.\"\n- Nationality: \"Carlos es de Nicaragua.\" / \"Carlos is from Nicaragua.\"\n- Hire Date: \"Luis fue contratado el 15 de enero de 2022.\" / \"Luis was hired on January 15, 2022.\"\n- LinkedIn: \"El LinkedIn de Pedro es linkedin.com/in/pedro-lopez.\" / \"Pedro's LinkedIn is linkedin.com/in/pedro-lopez.\"\n- Allergies: \"María es alérgica a los mariscos.\" / \"María is allergic to seafood.\"\n- Jacket Size: \"La talla de chaqueta de Juan es M.\" / \"Juan's jacket size is M.\"\n- Department: \"Ana trabaja en Desarrollo.\" / \"Ana works in Development.\"\n- Contact list (Spanish): \"Aquí está la lista de trabajadores:\\n\\n👥 **Equipo:**\\n• Ana García - ana@company.com - Desarrolladora\\n• Juan Pérez - juan@company.com - Gerente\\n• María López - maria@company.com - Diseñadora\\n\\n(Mostrando 3 de 15 contactos)\"\n- Contact list (English): \"Here's the staff list:\\n\\n👥 **Team:**\\n• Ana García - ana@company.com - Developer\\n• Juan Pérez - juan@company.com - Manager\\n• María López - maria@company.com - Designer\\n\\n(Showing 3 of 15 contacts)\"\n- Employee Skills (Spanish): \"Skills de René Cortez:\\n\\n🛠️ **Habilidades:**\\n• JavaScript (Avanzado)\\n• React (Intermedio)\\n• Node.js (Básico)\"\n- Employee Skills (English): \"René Cortez's skills:\\n\\n🛠️ **Skills:**\\n• JavaScript (Advanced)\\n• React (Intermediate)\\n• Node.js (Basic)\"\n- Skill Search (Spanish): \"Desarrolladores con TypeScript:\\n\\n👨‍💻 **Equipo:**\\n• Juan Pérez (Avanzado)\\n• Ana García (Intermedio)\\n• Carlos López (Básico)\"\n- Skill Search (English): \"Developers with TypeScript:\\n\\n👨‍💻 **Team:**\\n• Juan Pérez (Advanced)\\n• Ana García (Intermediate)\\n• Carlos López (Basic)\"\n- Client Allocation List (Spanish): \"Empleados en Scalar:\\n\\n🏢 **Equipo en Scalar:**\\n• René Cortez\\n• Ana García\\n• Pedro López\"\n- Client Allocation List (English): \"Employees at Scalar:\\n\\n🏢 **Scalar Team:**\\n• René Cortez\\n• Ana García\\n• Pedro López\"\n- Client Allocation Count (Spanish): \"Scalar tiene 15 empleados asignados.\"\n- Client Allocation Count (English): \"Scalar has 15 employees assigned.\"\n- Client Employee Count (Spanish): \"Scalar tiene 25 empleados registrados.\"\n- Client Employee Count (English): \"Scalar has 25 employees on record.\"\n- Client List (Spanish): \"Lista de clientes:\\n\\n🏢 **Clientes:**\\n• Scalar - 25 empleados\\n• TechCorp - 15 empleados\\n• DevInc - 8 empleados\\n\\n(Mostrando 3 de 10 clientes)\"\n- Client List (English): \"Client list:\\n\\n🏢 **Clients:**\\n• Scalar - 25 employees\\n• TechCorp - 15 employees\\n• DevInc - 8 employees\\n\\n(Showing 3 of 10 clients)\"\n- Employee Client Assignment (Spanish): \"Juan Pérez está asignado a Scalar.\"\n- Employee Client Assignment (English): \"Juan Pérez is assigned to Scalar.\"\n- Employee Client Info (Spanish): \"Pedro López (Desarrollador Senior) está trabajando en TechCorp.\"\n- Employee Client Info (English): \"Pedro López (Senior Developer) is working at TechCorp.\"\n- Multiple Client Assignment (Spanish): \"Ana García está asignada a:\\n\\n🏢 **Clientes:**\\n• Scalar\\n• TechCorp\"\n- Multiple Client Assignment (English): \"Ana García is assigned to:\\n\\n🏢 **Clients:**\\n• Scalar\\n• TechCorp\"\n- Employee Preferences (Spanish): \"Preferencias de Juan:\\n\\n🍰 **Gustos:**\\n• Pastel favorito: Chocolate\\n• Pizza favorita: Hawaiana\\n• Color favorito: Gris\\n• Comida favorita: Sopa de Frijoles\\n• Alergias: Huevos\\n• Prefiere: Dulce\\n\\n👕 **Tallas:**\\n• Camisa: M\\n• Chaqueta: XS\\n• Polo: M\\n• Jogger: L\"\n- Employee Preferences (English): \"Juan's preferences:\\n\\n🍰 **Tastes:**\\n• Favorite cake: Chocolate\\n• Favorite pizza: Hawaiian\\n• Favorite color: Gray\\n• Favorite food: Bean Soup\\n• Allergies: Eggs\\n• Prefers: Sweet\\n\\n👕 **Sizes:**\\n• T-Shirt: M\\n• Jacket: XS\\n• Polo: M\\n• Jogger: L\"\n- Employee Children Count (Spanish): \"Ana tiene 2 hijos.\"\n- Employee Children Count (English): \"Ana has 2 children.\"\n- Children Information (Spanish): \"Hijos de Pedro:\\n\\n👶 **Familia:**\\n• Mateo Cortez - 9/7/2024 (0 años)\\n• Sofia López - 15/3/2020 (4 años)\"\n- Children Information (English): \"Pedro's children:\\n\\n👶 **Family:**\\n• Mateo Cortez - 9/7/2024 (0 years old)\\n• Sofia López - 15/3/2020 (4 years old)\"\n- No Children (Spanish): \"No tiene hijos registrados.\"\n- No Children (English): \"No children on record.\"\n- Birthday This Week (Spanish): \"Cumpleaños esta semana:\\n\\n🎂 **¡Celebremos!**\\n• Ana García - 15 de marzo\\n• Pedro López - 18 de marzo\"\n- Birthday This Week (English): \"Birthdays this week:\\n\\n🎂 **Let's celebrate!**\\n• Ana García - March 15th\\n• Pedro López - March 18th\"\n- Birthday Next Week (Spanish): \"Cumpleaños la próxima semana:\\n\\n🎉 **¡Próximos cumpleaños!**\\n• Juan Pérez - 22 de marzo\\n• María González - 25 de marzo\"\n- Birthday Next Week (English): \"Birthdays next week:\\n\\n🎉 **Upcoming birthdays!**\\n• Juan Pérez - March 22nd\\n• María González - March 25th\"\n- Birthday This Month (Spanish): \"Cumpleaños este mes:\\n\\n🗓️ **Marzo:**\\n• Ana García - 15 de marzo\\n• Pedro López - 18 de marzo\\n• Juan Pérez - 22 de marzo\\n\\n(Mostrando 3 de 5 cumpleaños)\"\n- Birthday This Month (English): \"Birthdays this month:\\n\\n🗓️ **March:**\\n• Ana García - March 15th\\n• Pedro López - March 18th\\n• Juan Pérez - March 22nd\\n\\n(Showing 3 of 5 birthdays)\"\n- No birthdays found (Spanish): \"No hay cumpleaños programados para este período.\"\n- No birthdays found (English): \"No birthdays scheduled for this period.\"\n- If info not available: \"Lo siento, esa información no está disponible en el sistema.\" / \"Sorry, that information is not available in the system.\"\n- If person not found: \"No pude encontrar información sobre esa persona en el sistema.\" / \"I couldn't find information about that person in the system.\"",
-          "options": {}
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -1008,
+        -400
+      ],
+      "id": "3710497b-4a20-4ccf-8e78-1fff80592867",
+      "name": "Humanize Personal Response"
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "={{ $('Slack Trigger').item.json.user }}",
+          "mode": "id"
         },
-        "type": "@n8n/n8n-nodes-langchain.agent",
-        "typeVersion": 2.2,
-        "position": [
-          1008,
-          0
-        ],
-        "id": "720d7c38-4115-44cf-9166-452b8956e755",
-        "name": "Humanize Personal Response"
+        "text": "={{ $json.output }}",
+        "otherOptions": {}
       },
-      {
-        "parameters": {
-          "select": "user",
-          "user": {
-            "__rl": true,
-            "value": "={{ $('Slack Trigger').item.json.user }}",
-            "mode": "id"
-          },
-          "text": "={{ $json.output }}",
-          "otherOptions": {}
-        },
-        "type": "n8n-nodes-base.slack",
-        "typeVersion": 2.3,
-        "position": [
-          1376,
-          0
-        ],
-        "id": "38c56c9d-44f7-40d5-bb0b-cfa96a32c047",
-        "name": "Send Personal Info",
-        "webhookId": "a26f3472-0274-467a-b663-36caa06184a3",
-        "credentials": {
-          "slackApi": {
-            "id": "N2eQbu66RCaj9hiz",
-            "name": "Slack Account - API"
-          }
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -640,
+        -400
+      ],
+      "id": "527385f9-7ac5-40dc-bd93-d46b236dbba3",
+      "name": "Send Personal Info",
+      "webhookId": "a26f3472-0274-467a-b663-36caa06184a3",
+      "credentials": {
+        "slackApi": {
+          "id": "N2eQbu66RCaj9hiz",
+          "name": "Slack Account - API"
         }
-      },
-      {
-        "parameters": {},
-        "type": "n8n-nodes-base.noOp",
-        "typeVersion": 1,
-        "position": [
-          -784,
-          640
-        ],
-        "id": "d4fe6415-46f1-4c8a-a446-70318c2f0e7e",
-        "name": "No Operation, do nothing"
-      },
-      {
-        "parameters": {
-          "conditions": {
-            "options": {
-              "caseSensitive": true,
-              "leftValue": "",
-              "typeValidation": "strict",
-              "version": 2
-            },
-            "conditions": [
-              {
-                "id": "74d89d31-a87c-41f6-9710-c247864ae2e8",
-                "leftValue": "={{ $json.type }}",
-                "rightValue": "message",
-                "operator": {
-                  "type": "string",
-                  "operation": "equals"
-                }
-              }
-            ],
-            "combinator": "and"
-          },
-          "options": {}
-        },
-        "type": "n8n-nodes-base.if",
-        "typeVersion": 2.2,
-        "position": [
-          -1072,
-          480
-        ],
-        "id": "44392016-eee3-4006-8044-2e49cc1a04e2",
-        "name": "If message type is \"message\""
-      },
-      {
-        "parameters": {
-          "trigger": [
-            "message"
-          ],
-          "watchWorkspace": true,
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -2800,
+        240
+      ],
+      "id": "80ed53a8-c99b-4928-b04f-31555e512348",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "conditions": {
           "options": {
-            "userIds": [
-              "U09CWB1Q16F"
-            ]
-          }
-        },
-        "type": "n8n-nodes-base.slackTrigger",
-        "typeVersion": 1,
-        "position": [
-          -1264,
-          480
-        ],
-        "id": "a9ae820d-566e-46b8-80e7-ccd7e8427ce7",
-        "name": "Slack Trigger",
-        "webhookId": "11a93ddb-61f5-4b9c-9e9c-d3837ae651b2",
-        "credentials": {
-          "slackApi": {
-            "id": "N2eQbu66RCaj9hiz",
-            "name": "Slack Account - API"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "model": {
-            "__rl": true,
-            "value": "gpt-5-mini",
-            "mode": "list",
-            "cachedResultName": "gpt-5-mini"
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
           },
-          "options": {}
-        },
-        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-        "typeVersion": 1.2,
-        "position": [
-          320,
-          192
-        ],
-        "id": "3ae99176-4c46-43e7-94b4-17cd1b44bc0b",
-        "name": "OpenAI Chat Model1",
-        "credentials": {
-          "openAiApi": {
-            "id": "k5EcjwlAKjq4YYgj",
-            "name": "OpenAi account"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "model": {
-            "__rl": true,
-            "value": "gpt-5-mini",
-            "mode": "list",
-            "cachedResultName": "gpt-5-mini"
-          },
-          "options": {}
-        },
-        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-        "typeVersion": 1.2,
-        "position": [
-          1008,
-          192
-        ],
-        "id": "8d85a511-4b9b-415b-bec3-f839f26f78b7",
-        "name": "OpenAI Chat Model2",
-        "credentials": {
-          "openAiApi": {
-            "id": "k5EcjwlAKjq4YYgj",
-            "name": "OpenAi account"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "select": "user",
-          "user": {
-            "__rl": true,
-            "value": "={{ $('Slack Trigger').item.json.user }}",
-            "mode": "id"
-          },
-          "text": "={{ $json.detected_language === 'english' ? (['🤔 Thinking...', '💭 Let me check...', '🔍 Looking into it...', '⚡ Processing...', '🧠 Analyzing...'][Math.floor(Math.random() * 5)]) : (['🤔 Thinking...', '💭 Pensando...', '🔍 Looking into it...', '⚡ Processing...', '🧠 Analyzing...'][Math.floor(Math.random() * 5)]) }}",
-          "otherOptions": {}
-        },
-        "type": "n8n-nodes-base.slack",
-        "typeVersion": 2.3,
-        "position": [
-          0,
-          0
-        ],
-        "id": "8e6b6527-f68e-412a-9286-27fd8ef890c8",
-        "name": "Send Loading Message",
-        "webhookId": "a26f3472-0274-467a-b663-36caa06184a3",
-        "credentials": {
-          "slackApi": {
-            "id": "N2eQbu66RCaj9hiz",
-            "name": "Slack Account - API"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "conditions": {
-            "options": {
-              "caseSensitive": true,
-              "leftValue": "",
-              "typeValidation": "strict",
-              "version": 2
-            },
-            "conditions": [
-              {
-                "id": "66a9cc09-fecf-43c5-97c9-6c309d0b6fca",
-                "leftValue": "={{ $json.requires_salesforce }}",
-                "rightValue": "",
-                "operator": {
-                  "type": "boolean",
-                  "operation": "true",
-                  "singleValue": true
-                }
+          "conditions": [
+            {
+              "id": "74d89d31-a87c-41f6-9710-c247864ae2e8",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "message",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
               }
-            ],
-            "combinator": "and"
-          },
-          "options": {}
-        },
-        "type": "n8n-nodes-base.if",
-        "typeVersion": 2.2,
-        "position": [
-          -272,
-          192
-        ],
-        "id": "ff5544ee-47bb-4de9-acac-9e6c284f7080",
-        "name": "Require Salesforce?"
-      },
-      {
-        "parameters": {
-          "url": "https://nicasource--dreamit.sandbox.my.salesforce.com/services/data/v57.0/query",
-          "authentication": "predefinedCredentialType",
-          "nodeCredentialType": "salesforceOAuth2Api",
-          "sendQuery": true,
-          "queryParameters": {
-            "parameters": [
-              {
-                "name": "q",
-                "value": "={{ $('Generate Personal Info Query').item.json.output }}"
-              }
-            ]
-          },
-          "options": {}
-        },
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.2,
-        "position": [
-          752,
-          0
-        ],
-        "id": "2a47e7dd-4e26-46b4-a271-f7a782424426",
-        "name": "HTTP Request",
-        "credentials": {
-          "salesforceOAuth2Api": {
-            "id": "i46VeJ8P9scmTVpw",
-            "name": "Salesforce account"
-          }
-        }
-      }
-    ],
-    "pinData": {},
-    "connections": {
-      "Language & Message Classifier": {
-        "main": [
-          [
-            {
-              "node": "Parse AI Response",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Parse AI Response": {
-        "main": [
-          [
-            {
-              "node": "Require Salesforce?",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Humanize Personal Response": {
-        "main": [
-          [
-            {
-              "node": "Send Personal Info",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "OpenAI Chat Model": {
-        "ai_languageModel": [
-          [
-            {
-              "node": "Language & Message Classifier",
-              "type": "ai_languageModel",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "If message type is \"message\"": {
-        "main": [
-          [
-            {
-              "node": "Language & Message Classifier",
-              "type": "main",
-              "index": 0
             }
           ],
-          [
-            {
-              "node": "No Operation, do nothing",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
+          "combinator": "and"
+        },
+        "options": {}
       },
-      "Slack Trigger": {
-        "main": [
-          [
-            {
-              "node": "If message type is \"message\"",
-              "type": "main",
-              "index": 0
-            }
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3088,
+        80
+      ],
+      "id": "05b8d0e3-5dae-4c6a-aed4-8167a0a87919",
+      "name": "If message type is \"message\""
+    },
+    {
+      "parameters": {
+        "trigger": [
+          "message"
+        ],
+        "watchWorkspace": true,
+        "options": {
+          "userIds": [
+            "U09CWB1Q16F"
           ]
-        ]
+        }
       },
-      "OpenAI Chat Model1": {
-        "ai_languageModel": [
-          [
-            {
-              "node": "Generate Personal Info Query",
-              "type": "ai_languageModel",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "OpenAI Chat Model2": {
-        "ai_languageModel": [
-          [
-            {
-              "node": "Humanize Personal Response",
-              "type": "ai_languageModel",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Send Loading Message": {
-        "main": [
-          [
-            {
-              "node": "Generate Personal Info Query",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Require Salesforce?": {
-        "main": [
-          [
-            {
-              "node": "Send Loading Message",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "Send Direct Response",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Generate Personal Info Query": {
-        "main": [
-          [
-            {
-              "node": "HTTP Request",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-              "HTTP Request": {
-          "main": [
-            [
-              {
-                "node": "Humanize Personal Response",
-                "type": "main",
-              "index": 0
-            }
-          ]
-        ]
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        -3280,
+        80
+      ],
+      "id": "d7f3b20d-3a4c-4945-acea-b46f65322337",
+      "name": "Slack Trigger",
+      "webhookId": "11a93ddb-61f5-4b9c-9e9c-d3837ae651b2",
+      "credentials": {
+        "slackApi": {
+          "id": "N2eQbu66RCaj9hiz",
+          "name": "Slack Account - API"
+        }
       }
     },
-    "active": true,
-    "settings": {
-      "executionOrder": "v1"
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -1696,
+        -208
+      ],
+      "id": "5119f354-a4d9-4ec9-9156-0b7aabec2bb1",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "k5EcjwlAKjq4YYgj",
+          "name": "OpenAi account"
+        }
+      }
     },
-    "versionId": "76eb41d8-1b50-442c-8849-5e6885729662",
-    "meta": {
-      "instanceId": "a20115e057f59f5dc4a80663403808257c06784aade2661a83823c7e804639ee"
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -1008,
+        -208
+      ],
+      "id": "3646a280-2671-4ff3-a652-84c775095ebd",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "k5EcjwlAKjq4YYgj",
+          "name": "OpenAi account"
+        }
+      }
     },
-    "id": "lD2A0siAmUVzT9Fn",
-    "tags": []
-  }
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "={{ $('Slack Trigger').item.json.user }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.detected_language === 'english' ? (['🤔 Thinking...', '💭 Let me check...', '🔍 Looking into it...', '⚡ Processing...', '🧠 Analyzing...'][Math.floor(Math.random() * 5)]) : (['🤔 Thinking...', '💭 Pensando...', '🔍 Looking into it...', '⚡ Processing...', '🧠 Analyzing...'][Math.floor(Math.random() * 5)]) }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -2016,
+        -400
+      ],
+      "id": "17aab9f1-807d-4f9f-abe3-7f8f03750d1a",
+      "name": "Send Loading Message",
+      "webhookId": "a26f3472-0274-467a-b663-36caa06184a3",
+      "credentials": {
+        "slackApi": {
+          "id": "N2eQbu66RCaj9hiz",
+          "name": "Slack Account - API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "66a9cc09-fecf-43c5-97c9-6c309d0b6fca",
+              "leftValue": "={{ $json.requires_salesforce }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2288,
+        -208
+      ],
+      "id": "8d4e3f9b-9ace-4711-868d-744ce725d6ac",
+      "name": "Require Salesforce?"
+    },
+    {
+      "parameters": {
+        "url": "https://nicasource--dreamit.sandbox.my.salesforce.com/services/data/v57.0/query",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "salesforceOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $('Generate Personal Info Query').item.json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1264,
+        -400
+      ],
+      "id": "0453b57f-4840-449f-b518-0943ee22d53d",
+      "name": "HTTP Request",
+      "credentials": {
+        "salesforceOAuth2Api": {
+          "id": "i46VeJ8P9scmTVpw",
+          "name": "Salesforce account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Language & Message Classifier": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Require Salesforce?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Humanize Personal Response": {
+      "main": [
+        [
+          {
+            "node": "Send Personal Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Language & Message Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If message type is \"message\"": {
+      "main": [
+        [
+          {
+            "node": "Language & Message Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "If message type is \"message\"",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Personal Info Query",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Humanize Personal Response",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Loading Message": {
+      "main": [
+        [
+          {
+            "node": "Generate Personal Info Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Require Salesforce?": {
+      "main": [
+        [
+          {
+            "node": "Send Loading Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Direct Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Personal Info Query": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Humanize Personal Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2bcf0172-8d85-4bb3-8dd4-f80c2b6a8232",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a20115e057f59f5dc4a80663403808257c06784aade2661a83823c7e804639ee"
+  },
+  "id": "nFP3DvJUZpxIBXxE",
+  "tags": []
+}
