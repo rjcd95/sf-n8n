@@ -18,7 +18,7 @@
 - **HR Team**: For employee management and information verification
 - **Management**: For team overview and resource allocation insights
 
-### User Personas
+### User
 1. **New Employee**: Needs to find contact info and learn about team members
 2. **Project Manager**: Looking for team members with specific skills
 3. **HR Coordinator**: Checking employee preferences for events/celebrations
